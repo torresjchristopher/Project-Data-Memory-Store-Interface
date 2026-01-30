@@ -1,146 +1,183 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import type { MemoryTree, Person } from '../types';
 
 interface TreeDisplayProps {
   tree: MemoryTree;
+  onSelectPerson: (personId: string | null) => void; // null = Family View
 }
 
-const TreeDisplay: React.FC<TreeDisplayProps> = ({ tree }) => {
+const TreeDisplay: React.FC<TreeDisplayProps> = ({ tree, onSelectPerson }) => {
   const d3Container = useRef(null);
+  const [selectedId, setSelectedId] = useState<string | 'FAMILY'>('FAMILY');
 
   useEffect(() => {
     if (tree && d3Container.current && tree.people.length > 0) {
       const svg = d3.select(d3Container.current);
       svg.selectAll("*").remove();
 
-      const width = 1200;
+      const width = 800;
       const height = 800;
+      const center = { x: width / 2, y: height / 2 };
       
       const mainSvg = svg
          .attr('viewBox', `0 0 ${width} ${height}`)
-         .attr('width', '100%')
-         .attr('height', 'auto')
-         .style('background-color', '#fff');
+         .style('background-color', '#fdfbf7')
+         .style('border-radius', '50%')
+         .style('box-shadow', 'inset 0 0 50px rgba(85, 107, 47, 0.1)');
 
-      const g = mainSvg.append("g").attr("transform", "translate(50,50)");
+      // --- LOGIC: GENERATION BANDS ---
+      // 1. Sort by age (oldest first)
+      const sortedPeople = [...tree.people].sort((a, b) => a.birthYear - b.birthYear);
+      
+      if (sortedPeople.length === 0) return;
 
-      try {
-        // 1. Prepare data - handle multiple roots by adding a virtual super-root
-        const dataWithVirtualRoot = [
-          { id: 'VIRTUAL_ROOT', name: '', parentId: undefined },
-          ...tree.people.map(p => ({
-            ...p,
-            parentId: p.parentId || 'VIRTUAL_ROOT'
-          }))
-        ];
+      const oldestYear = sortedPeople[0].birthYear;
+      const youngestYear = sortedPeople[sortedPeople.length - 1].birthYear;
+      
+      // Create bands of ~25 years (Generations)
+      const generationSpan = 25;
+      const bands: Person[][] = [];
+      
+      sortedPeople.forEach(p => {
+        // older people have smaller diff, so smaller index -> inner ring
+        const diff = p.birthYear - oldestYear; 
+        const bandIndex = Math.floor(diff / generationSpan);
+        if (!bands[bandIndex]) bands[bandIndex] = [];
+        bands[bandIndex].push(p);
+      });
 
-        const root = d3.stratify()
-          .id((d: any) => d.id)
-          .parentId((d: any) => d.parentId)
-          (dataWithVirtualRoot);
-        
-        const treeLayout = d3.tree().size([height - 150, width - 250]);
-        const treeData = treeLayout(root);
+      // Filter out empty bands in case of gaps
+      const activeBands = bands.filter(b => b && b.length > 0);
+      const ringSpacing = 120; // Distance between rings
 
-        // Filter out virtual root links and nodes for rendering
-        const descendants = treeData.descendants().filter(d => d.id !== 'VIRTUAL_ROOT');
-        const links = treeData.links().filter(l => l.source.id !== 'VIRTUAL_ROOT');
+      // --- DRAWING ---
+      const g = mainSvg.append("g");
 
-        // Links - Step-like paths
-        g.selectAll('.link')
-          .data(links)
-          .enter()
-          .append('path')
-          .attr('class', 'link')
-          .attr('d', (d: any) => {
-            // Horizontal step-like path
-            return `M${d.source.y},${d.source.x}
-                    H${(d.source.y + d.target.y) / 2}
-                    V${d.target.x}
-                    H${d.target.y}`;
-          })
-          .style('fill', 'none')
-          .style('stroke', '#d2b48c')
-          .style('stroke-width', '2px');
+      // 1. Draw Rings (Wood Grain Effect)
+      activeBands.forEach((_, index) => {
+        const radius = (index + 1) * ringSpacing;
+        g.append("circle")
+          .attr("cx", center.x)
+          .attr("cy", center.y)
+          .attr("r", radius)
+          .style("fill", "none")
+          .style("stroke", "#d2b48c") // Tan wood color
+          .style("stroke-width", "2px")
+          .style("stroke-dasharray", "10,5")
+          .style("opacity", 0.6);
+          
+        // Label the Ring (Generation Year Range)
+        const startYear = oldestYear + (index * generationSpan);
+        g.append("text")
+           .attr("x", center.x)
+           .attr("y", center.y - radius + 15)
+           .style("text-anchor", "middle")
+           .style("font-size", "10px")
+           .style("fill", "#8fbc8f")
+           .text(`Gen ${startYear}s`);
+      });
 
-        // Nodes (People Cards)
-        const node = g.selectAll('.node')
-          .data(descendants)
-          .enter()
-          .append('g')
-          .attr('class', 'node')
-          .attr('transform', (d: any) => `translate(${d.y},${d.x})`);
-
-        const cardWidth = 160;
-        const cardHeight = 50;
-
-        // Card Rectangle
-        node.append('rect')
-          .attr('x', -10)
-          .attr('y', -cardHeight / 2)
-          .attr('width', cardWidth)
-          .attr('height', cardHeight)
-          .attr('rx', 6)
-          .style('fill', '#fff')
-          .style('stroke', '#556b2f')
-          .style('stroke-width', '2px')
-          .style('filter', 'drop-shadow(0px 2px 2px rgba(0,0,0,0.1))');
-
-        // Name Text
-        node.append('text')
-          .attr('x', 15)
-          .attr('y', 4)
-          .style('fill', '#2c3e50')
-          .style('font-family', 'var(--app-font-body)')
-          .style('font-size', '13px')
-          .style('font-weight', 'bold')
-          .text((d: any) => d.data.name);
-
-        // Memory Count Badge
-        node.each(function(d: any) {
-          const personMemories = tree.memories.filter(m => m.personIds.includes(d.id));
-          if (personMemories.length > 0) {
-            const badgeG = d3.select(this).append('g');
-            
-            badgeG.append('circle')
-              .attr('cx', cardWidth - 10)
-              .attr('cy', -cardHeight / 2)
-              .attr('r', 10)
-              .style('fill', '#8fbc8f');
-
-            badgeG.append('text')
-              .attr('x', cardWidth - 10)
-              .attr('cy', -cardHeight / 2)
-              .attr('dy', '4px')
-              .style('text-anchor', 'middle')
-              .style('fill', '#fff')
-              .style('font-size', '10px')
-              .style('font-weight', 'bold')
-              .text(personMemories.length);
-          }
+      // 2. Center "Heart" (The Family Bank)
+      const familyNode = g.append("g")
+        .style("cursor", "pointer")
+        .on("click", () => {
+          setSelectedId('FAMILY');
+          onSelectPerson(null);
         });
 
-      } catch (e) {
-        console.error("Tree construction failed", e);
-        mainSvg.append('text')
-          .attr('x', width/2)
-          .attr('y', height/2)
-          .style('text-anchor', 'middle')
-          .style('fill', '#95a5a6')
-          .text("Add family members to see your tree visualization.");
-      }
+      familyNode.append("circle")
+        .attr("cx", center.x)
+        .attr("cy", center.y)
+        .attr("r", 50)
+        .style("fill", selectedId === 'FAMILY' ? "#556b2f" : "#8fbc8f")
+        .style("stroke", "#2c3e50")
+        .style("stroke-width", "4px");
+
+      familyNode.append("text")
+        .attr("x", center.x)
+        .attr("y", center.y + 5)
+        .style("text-anchor", "middle")
+        .style("font-family", "serif")
+        .style("font-weight", "bold")
+        .style("fill", "#fff")
+        .text(tree.familyName || "FAMILY");
+
+      // 3. Place People on Rings
+      activeBands.forEach((bandMembers, bandIndex) => {
+        const radius = (bandIndex + 1) * ringSpacing;
+        const angleStep = (2 * Math.PI) / bandMembers.length;
+
+        bandMembers.forEach((person, i) => {
+          const angle = (i * angleStep) - (Math.PI / 2); // Start at top
+          const x = center.x + radius * Math.cos(angle);
+          const y = center.y + radius * Math.sin(angle);
+
+          const personNode = g.append("g")
+            .attr("transform", `translate(${x},${y})`)
+            .style("cursor", "pointer")
+            .on("click", (e) => {
+              e.stopPropagation();
+              setSelectedId(person.id);
+              onSelectPerson(person.id);
+            });
+
+          // Check if selected
+          const isSelected = selectedId === person.id;
+
+          // Node Circle
+          personNode.append("circle")
+            .attr("r", isSelected ? 25 : 18)
+            .style("fill", "#fff")
+            .style("stroke", isSelected ? "#556b2f" : "#2c3e50")
+            .style("stroke-width", isSelected ? "3px" : "2px")
+            .transition().duration(300);
+
+          // Name Label
+          personNode.append("text")
+            .attr("y", 35)
+            .style("text-anchor", "middle")
+            .style("font-size", isSelected ? "14px" : "12px")
+            .style("font-weight", isSelected ? "bold" : "normal")
+            .style("fill", "#2c3e50")
+            .style("text-shadow", "0 1px 2px rgba(255,255,255,0.8)")
+            .text(person.name);
+            
+           // Year Label
+           personNode.append("text")
+            .attr("y", 48)
+            .style("text-anchor", "middle")
+            .style("font-size", "10px")
+            .style("fill", "#7f8c8d")
+            .text(person.birthYear);
+
+          // Memory Count Badge (if any)
+          const memCount = tree.memories.filter(m => m.tags.personIds.includes(person.id)).length;
+          if (memCount > 0) {
+            personNode.append("circle")
+              .attr("cx", 15)
+              .attr("cy", -15)
+              .attr("r", 8)
+              .style("fill", "#d2b48c");
+            
+            personNode.append("text")
+              .attr("x", 15)
+              .attr("y", -13)
+              .style("text-anchor", "middle")
+              .style("font-size", "9px")
+              .style("fill", "#fff")
+              .text(memCount);
+          }
+        });
+      });
+
     }
-  }, [tree]);
+  }, [tree, selectedId]);
 
   return (
-    <div className="card shadow-sm border-0 p-3 bg-white" style={{ borderRadius: '12px' }}>
-      <div className="d-flex justify-content-between align-items-center mb-3 px-2">
-        <h5 className="mb-0 fw-bold" style={{ color: '#556b2f' }}>Visual Genealogy</h5>
-        <small className="text-muted">Interactive Family Map</small>
-      </div>
-      <div className="overflow-auto border rounded bg-light" style={{ maxHeight: '600px' }}>
-        <svg ref={d3Container} />
+    <div className="d-flex justify-content-center py-4 bg-white rounded shadow-sm">
+      <div style={{ width: '100%', maxWidth: '800px', aspectRatio: '1/1' }}>
+        <svg ref={d3Container} style={{ width: '100%', height: '100%' }} />
       </div>
     </div>
   );

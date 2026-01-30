@@ -20,11 +20,14 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAd
   const [fileType, setFileType] = useState<MemoryType>('image');
   const [location, setLocation] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  
+  // Tagging
+  const [tagScope, setTagScope] = useState<'FAMILY' | 'PERSON'>('FAMILY');
   const [selectedPersonId, setSelectedPersonId] = useState('');
   
   // Person Fields
   const [newPersonName, setNewPersonName] = useState('');
-  const [parentId, setParentId] = useState('');
+  const [birthYear, setBirthYear] = useState('');
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -32,7 +35,6 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAd
       const reader = new FileReader();
       reader.onloadend = () => {
         setFileData(reader.result as string);
-        // Basic type detection
         if (file.type.startsWith('image/')) setFileType('image');
         else if (file.type.startsWith('audio/')) setFileType('audio');
         else if (file.type.startsWith('video/')) setFileType('video');
@@ -47,26 +49,23 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAd
     e.preventDefault();
     
     if (isAddingNewPerson) {
-      if (!newPersonName.trim()) return;
+      if (!newPersonName.trim() || !birthYear) return;
       onAddPerson({
         id: Math.random().toString(36).substr(2, 9),
         name: newPersonName.trim(),
-        parentId: parentId || undefined,
+        birthYear: parseInt(birthYear),
+        parentId: undefined, // No longer strictly needed for ring visualization
       });
       setIsAddingNewPerson(false);
       setNewPersonName('');
+      setBirthYear('');
     } else {
-      if (!selectedPersonId) {
-        alert("Please select a family member for this memory.");
+      if (tagScope === 'PERSON' && !selectedPersonId) {
+        alert("Please select a family member.");
         return;
       }
 
       const finalType = submissionMode === 'STORY' ? 'text' : fileType;
-      const finalContent = submissionMode === 'STORY' ? content : (submissionMode === 'FILE' ? (fileData || '') : `${content}\n\n[FILE_ATTACHED]`);
-      
-      // If BOTH, we store the file data in a way that includes the description
-      // For simplicity in this version, we'll store the text. 
-      // A more robust app would store multiple fields, but we'll stick to the current Memory type.
       
       onAddMemory({
         id: Math.random().toString(36).substr(2, 9),
@@ -74,7 +73,10 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAd
         content: submissionMode === 'BOTH' ? `${content}|DELIM|${fileData}` : (submissionMode === 'STORY' ? content : (fileData || '')),
         location,
         timestamp: new Date(date),
-        personIds: [selectedPersonId],
+        tags: {
+            isFamilyMemory: tagScope === 'FAMILY',
+            personIds: tagScope === 'PERSON' ? [selectedPersonId] : []
+        }
       });
       onCancel();
     }
@@ -103,7 +105,7 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAd
           {isAddingNewPerson ? (
             <div className="animate-fade-in">
               <div className="mb-4">
-                <label className="form-label fw-bold">Full Legal or Preferred Name</label>
+                <label className="form-label fw-bold">Full Name</label>
                 <input 
                   type="text" 
                   className="form-control form-control-lg border-2" 
@@ -114,28 +116,60 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAd
                 />
               </div>
               <div className="mb-4">
-                <label className="form-label fw-bold">Parent / Biological Connection</label>
-                <select className="form-select form-select-lg border-2" value={parentId} onChange={(e) => setParentId(e.target.value)}>
-                  <option value="">No Direct Connection (Root Person)</option>
-                  {people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-                <p className="form-text mt-2">Connecting people helps build your family tree visualization.</p>
+                <label className="form-label fw-bold">Birth Year (Crucial for Tree Placement)</label>
+                <input 
+                  type="number" 
+                  className="form-control form-control-lg border-2" 
+                  placeholder="e.g. 1950"
+                  value={birthYear} 
+                  onChange={(e) => setBirthYear(e.target.value)} 
+                  required 
+                />
+                <div className="form-text">Oldest members will appear in the center ring.</div>
               </div>
             </div>
           ) : (
             <div className="animate-fade-in">
+              {/* Submission Mode Selection */}
               <div className="mb-4">
-                <label className="form-label fw-bold d-block mb-3">What would you like to share?</label>
+                <label className="form-label fw-bold d-block mb-3">What are you adding?</label>
                 <div className="btn-group w-100" role="group">
                   <input type="radio" className="btn-check" name="mode" id="m1" checked={submissionMode === 'STORY'} onChange={() => setSubmissionMode('STORY')} />
-                  <label className="btn btn-outline-primary py-3" htmlFor="m1">Write a Story</label>
+                  <label className="btn btn-outline-primary py-3" htmlFor="m1">Story</label>
                   
                   <input type="radio" className="btn-check" name="mode" id="m2" checked={submissionMode === 'FILE'} onChange={() => setSubmissionMode('FILE')} />
-                  <label className="btn btn-outline-primary py-3" htmlFor="m2">Upload a Photo</label>
+                  <label className="btn btn-outline-primary py-3" htmlFor="m2">Photo</label>
                   
                   <input type="radio" className="btn-check" name="mode" id="m3" checked={submissionMode === 'BOTH'} onChange={() => setSubmissionMode('BOTH')} />
-                  <label className="btn btn-outline-primary py-3" htmlFor="m3">Photo + Story</label>
+                  <label className="btn btn-outline-primary py-3" htmlFor="m3">Both</label>
                 </div>
+              </div>
+
+              {/* Tagging Section */}
+              <div className="mb-4 p-3 bg-light rounded border">
+                <label className="form-label fw-bold">Who is this for?</label>
+                <div className="d-flex gap-3 mb-3">
+                    <div className="form-check">
+                        <input className="form-check-input" type="radio" name="tagScope" id="tagFamily" checked={tagScope === 'FAMILY'} onChange={() => setTagScope('FAMILY')} />
+                        <label className="form-check-label" htmlFor="tagFamily">The Whole Family (Center Bank)</label>
+                    </div>
+                    <div className="form-check">
+                        <input className="form-check-input" type="radio" name="tagScope" id="tagPerson" checked={tagScope === 'PERSON'} onChange={() => setTagScope('PERSON')} />
+                        <label className="form-check-label" htmlFor="tagPerson">Specific Person</label>
+                    </div>
+                </div>
+                
+                {tagScope === 'PERSON' && (
+                    <select 
+                        className="form-select border-2" 
+                        value={selectedPersonId} 
+                        onChange={(e) => setSelectedPersonId(e.target.value)}
+                        required
+                    >
+                        <option value="">Select family member...</option>
+                        {people.map(p => <option key={p.id} value={p.id}>{p.name} (b. {p.birthYear})</option>)}
+                    </select>
+                )}
               </div>
 
               {(submissionMode === 'STORY' || submissionMode === 'BOTH') && (
@@ -144,7 +178,6 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAd
                   <textarea 
                     className="form-control border-2" 
                     rows={5}
-                    placeholder="Tell the story of this moment..."
                     value={content} 
                     onChange={(e) => setContent(e.target.value)} 
                     required 
@@ -154,62 +187,25 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAd
 
               {(submissionMode === 'FILE' || submissionMode === 'BOTH') && (
                 <div className="mb-4">
-                  <label className="form-label fw-bold">Choose Photo or File</label>
-                  <div className="p-4 border-2 border-dashed rounded text-center bg-light" style={{ border: '2px dashed #ced4da' }}>
-                    <input 
-                      type="file" 
-                      id="fileInput"
-                      className="d-none" 
-                      onChange={handleFileChange} 
-                      accept="image/*,audio/*,video/*,.pdf"
-                    />
-                    <label htmlFor="fileInput" className="btn btn-secondary px-4">
-                      {fileData ? 'Change File' : 'Select File'}
-                    </label>
-                    {fileData && (
-                      <div className="mt-2 text-success small fw-bold">
-                        ✓ File ready for preservation
-                      </div>
-                    )}
-                  </div>
+                  <label className="form-label fw-bold">File Upload</label>
+                  <input 
+                    type="file" 
+                    className="form-control" 
+                    onChange={handleFileChange} 
+                    accept="image/*,audio/*,video/*,.pdf"
+                  />
                 </div>
               )}
 
               <div className="row">
                 <div className="col-md-6 mb-4">
                   <label className="form-label fw-bold">Location</label>
-                  <input 
-                    type="text" 
-                    className="form-control border-2" 
-                    placeholder="e.g. Family Farm, Ohio"
-                    value={location} 
-                    onChange={(e) => setLocation(e.target.value)} 
-                    required 
-                  />
+                  <input type="text" className="form-control border-2" value={location} onChange={(e) => setLocation(e.target.value)} required />
                 </div>
                 <div className="col-md-6 mb-4">
-                  <label className="form-label fw-bold">Approximate Date</label>
-                  <input 
-                    type="date" 
-                    className="form-control border-2" 
-                    value={date} 
-                    onChange={(e) => setDate(e.target.value)} 
-                    required 
-                  />
+                  <label className="form-label fw-bold">Date</label>
+                  <input type="date" className="form-control border-2" value={date} onChange={(e) => setDate(e.target.value)} required />
                 </div>
-              </div>
-
-              <div className="mb-4">
-                <label className="form-label fw-bold">Who is this memory about?</label>
-                <select 
-                  className="form-select border-2 form-select-lg" 
-                  value={selectedPersonId} 
-                  onChange={(e) => setSelectedPersonId(e.target.value)}
-                  required
-                >
-                  <option value="">Select a family member...</option>
-                  {people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
               </div>
             </div>
           )}
@@ -217,7 +213,7 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAd
           <div className="d-flex justify-content-end gap-3 pt-3">
             <button type="button" className="btn btn-light btn-lg px-5" onClick={onCancel}>Cancel</button>
             <button type="submit" className="btn btn-primary btn-lg px-5 shadow-sm">
-              {isAddingNewPerson ? 'Save Member' : 'Preserve Memory'}
+              {isAddingNewPerson ? 'Register Member' : 'Preserve Memory'}
             </button>
           </div>
         </form>
