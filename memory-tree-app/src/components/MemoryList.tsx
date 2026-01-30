@@ -95,7 +95,9 @@ const MemoryList: React.FC<MemoryListProps> = ({ memories, people }) => {
                       About
                     </small>
                     <div className="fw-bold" style={{ color: '#2c3e50' }}>
-                      {memory.personIds.map(id => getPersonName(id)).join(', ')}
+                      {memory.tags.isFamilyMemory 
+                        ? "Whole Family" 
+                        : memory.tags.personIds.map(id => getPersonName(id)).join(', ')}
                     </div>
                   </div>
                 </div>

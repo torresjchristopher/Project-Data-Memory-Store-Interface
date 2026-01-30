@@ -4,19 +4,23 @@ import './App.css';
 import Header from './components/Header';
 import TreeDisplay from './components/TreeDisplay';
 import AddMemoryForm from './components/AddMemoryForm';
-import AddPersonForm from './components/AddPersonForm'; // New Component
+import AddPersonForm from './components/AddPersonForm';
 import MemoryList from './components/MemoryList';
 import type { MemoryTree, Memory, Person } from './types';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+
+// Firebase Imports
+import { db } from './firebase';
+import { doc, onSnapshot, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
 
 type AppState = 'SELECTION' | 'ACTIVE';
 
 function App() {
   const [appState, setAppState] = useState<AppState>('SELECTION');
   const [inputKey, setInputKey] = useState('');
+  const [isSyncing, setIsSyncing] = useState(false);
   
-  // Default State for "The Murrays"
   const [memoryTree, setMemoryTree] = useState<MemoryTree>({
     familyName: 'The Murrays',
     people: [],
@@ -26,97 +30,97 @@ function App() {
   const [showAddMemoryForm, setShowAddMemoryForm] = useState(false);
   const [showAddPersonForm, setShowAddPersonForm] = useState(false);
   const [editingPersonId, setEditingPersonId] = useState<string | null>(null);
-
-  // Selection State: null = Family View (Center), string = Person ID
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
 
-  // Auto-save whenever tree changes
+  // --- REAL-TIME SYNC ---
   useEffect(() => {
-    if (memoryTree.protocolKey) {
-      localStorage.setItem(`MT_PROTO_${memoryTree.protocolKey}`, JSON.stringify(memoryTree));
+    if (appState === 'ACTIVE' && memoryTree.protocolKey) {
+      setIsSyncing(true);
+      const unsub = onSnapshot(doc(db, "trees", memoryTree.protocolKey), (doc) => {
+        if (doc.exists()) {
+          const data = doc.data() as MemoryTree;
+          // Convert Firestore timestamps back to Dates
+          const processedMemories = data.memories.map(m => ({
+            ...m,
+            timestamp: (m.timestamp as any).toDate ? (m.timestamp as any).toDate() : new Date(m.timestamp)
+          }));
+          setMemoryTree({ ...data, memories: processedMemories });
+        }
+        setIsSyncing(false);
+      });
+      return () => unsub();
     }
-  }, [memoryTree]);
+  }, [appState, memoryTree.protocolKey]);
 
-  const handleStartNewTree = () => {
+  const handleStartNewTree = async () => {
     const newKey = Math.floor(100000 + Math.random() * 900000).toString();
-    // Start EMPTY - User must add members
-    setMemoryTree({
+    const newTree: MemoryTree = {
       protocolKey: newKey,
       familyName: 'The Murrays',
       people: [],
       memories: [],
-    });
-    setAppState('ACTIVE');
+    };
+
+    try {
+      await setDoc(doc(db, "trees", newKey), newTree);
+      setMemoryTree(newTree);
+      setAppState('ACTIVE');
+    } catch (e) {
+      console.error("Error creating tree:", e);
+      alert("Failed to connect to database. Check your Firebase config.");
+    }
   };
 
   const handleLoadByKey = () => {
-    const saved = localStorage.getItem(`MT_PROTO_${inputKey}`);
-    if (saved) {
-      setMemoryTree(JSON.parse(saved));
-      setAppState('ACTIVE');
-    } else {
-      alert(`Could not find a family tree with key: ${inputKey}`);
-    }
+    if (inputKey.length < 6) return;
+    // We just set the key and appState; the onSnapshot useEffect handles the fetching
+    setMemoryTree(prev => ({ ...prev, protocolKey: inputKey }));
+    setAppState('ACTIVE');
   };
 
-  // --- MEMBER MANAGEMENT ---
+  // --- MEMBER MANAGEMENT (Write to Firestore) ---
 
-  const handleSavePerson = (person: Person) => {
+  const handleSavePerson = async (person: Person) => {
+    if (!memoryTree.protocolKey) return;
+    
+    const treeRef = doc(db, "trees", memoryTree.protocolKey);
+    let updatedPeople;
+
     if (editingPersonId) {
-      // Edit Mode
-      setMemoryTree(prev => ({
-        ...prev,
-        people: prev.people.map(p => p.id === editingPersonId ? person : p)
-      }));
-      setEditingPersonId(null);
+      updatedPeople = memoryTree.people.map(p => p.id === editingPersonId ? person : p);
     } else {
-      // Add Mode
-      setMemoryTree(prev => ({
-        ...prev,
-        people: [...prev.people, person]
-      }));
+      updatedPeople = [...memoryTree.people, person];
     }
+
+    await updateDoc(treeRef, { people: updatedPeople });
+    setEditingPersonId(null);
     setShowAddPersonForm(false);
   };
 
-  const handleDeletePerson = (personId: string) => {
-    // Check if person has memories
+  const handleDeletePerson = async (personId: string) => {
     const hasMemories = memoryTree.memories.some(m => m.tags.personIds.includes(personId));
     if (hasMemories) {
-      alert("Cannot remove this person because they have attached memories. Please delete or reassign their memories first.");
+      alert("Cannot remove this person because they have attached memories.");
       return;
     }
 
-    if (window.confirm("Are you sure you want to remove this family member?")) {
-      setMemoryTree(prev => ({
-        ...prev,
-        people: prev.people.filter(p => p.id !== personId)
-      }));
-      setSelectedEntityId(null); // Go back to family view
+    if (window.confirm("Remove this family member?")) {
+      const treeRef = doc(db, "trees", memoryTree.protocolKey!);
+      await updateDoc(treeRef, {
+        people: memoryTree.people.filter(p => p.id !== personId)
+      });
+      setSelectedEntityId(null);
     }
   };
 
-  const startEditPerson = (personId: string) => {
-    setEditingPersonId(personId);
-    setShowAddPersonForm(true);
-  };
+  // --- MEMORY MANAGEMENT (Write to Firestore) ---
 
-  // --- MEMORY MANAGEMENT ---
-
-  const handleAddMemory = (newMemory: Memory) => {
-    setMemoryTree(prev => ({
-      ...prev,
-      memories: [...prev.memories, newMemory]
-    }));
-  };
-  
-  // Passed to AddMemoryForm (legacy wrapper)
-  const handleAddPersonFromMemoryForm = (newPerson: Person) => {
-     // Redirect to main handler
-     setMemoryTree(prev => ({
-        ...prev,
-        people: [...prev.people, newPerson]
-      }));
+  const handleAddMemory = async (newMemory: Memory) => {
+    if (!memoryTree.protocolKey) return;
+    const treeRef = doc(db, "trees", memoryTree.protocolKey);
+    await updateDoc(treeRef, {
+      memories: arrayUnion(newMemory)
+    });
   };
 
   // Filter memories
@@ -127,18 +131,13 @@ function App() {
   const handleExportClick = async () => {
     const treeElement = document.getElementById('tree-container');
     if (!treeElement) return;
-
     const canvas = await html2canvas(treeElement, { backgroundColor: '#ffffff', scale: 2 });
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF('p', 'mm', 'a4');
-    const pageWidth = pdf.internal.pageSize.getWidth();
-
-    pdf.text("Family Memory Archive", pageWidth/2, 20, { align: 'center' });
-    pdf.addImage(imgData, 'PNG', 10, 30, pageWidth - 20, 0);
+    pdf.text("Family Memory Archive", 105, 20, { align: 'center' });
+    pdf.addImage(imgData, 'PNG', 10, 30, 190, 0);
     pdf.save(`Family_History_${new Date().getFullYear()}.pdf`);
   };
-
-  // --- RENDER ---
 
   if (appState === 'SELECTION') {
     return (
@@ -170,8 +169,6 @@ function App() {
     );
   }
 
-  const personToEdit = editingPersonId ? memoryTree.people.find(p => p.id === editingPersonId) : null;
-
   return (
     <div className="App">
       <Header 
@@ -179,31 +176,31 @@ function App() {
         onAddPersonClick={() => { setEditingPersonId(null); setShowAddPersonForm(true); }}
         onExportClick={handleExportClick}
       />
+      
+      {isSyncing && (
+        <div className="bg-success text-white text-center small py-1" style={{ opacity: 0.8 }}>
+          Syncing with Cloud...
+        </div>
+      )}
+
       <main className="container mt-4">
-        
-        {/* Forms Modal Area */}
         {showAddPersonForm && (
-          <div className="mb-4">
-            <AddPersonForm 
-              personToEdit={personToEdit}
-              onSave={handleSavePerson}
-              onCancel={() => { setShowAddPersonForm(false); setEditingPersonId(null); }}
-            />
-          </div>
+          <AddPersonForm 
+            personToEdit={editingPersonId ? memoryTree.people.find(p => p.id === editingPersonId) : null}
+            onSave={handleSavePerson}
+            onCancel={() => { setShowAddPersonForm(false); setEditingPersonId(null); }}
+          />
         )}
 
         {showAddMemoryForm && (
-          <div className="mb-4">
-            <AddMemoryForm 
-              people={memoryTree.people}
-              onAddMemory={handleAddMemory}
-              onAddPerson={handleAddPersonFromMemoryForm}
-              onCancel={() => setShowAddMemoryForm(false)}
-            />
-          </div>
+          <AddMemoryForm 
+            people={memoryTree.people}
+            onAddMemory={handleAddMemory}
+            onAddPerson={() => {}} // Legacy prop
+            onCancel={() => setShowAddMemoryForm(false)}
+          />
         )}
 
-        {/* Tree Visualization */}
         <div id="tree-container" className="mb-5">
            {memoryTree.people.length === 0 ? (
              <div className="text-center p-5 bg-white border border-dashed rounded text-muted">
@@ -211,37 +208,22 @@ function App() {
                <p>Click "Add Member" above to register the first family member.</p>
              </div>
            ) : (
-             <TreeDisplay 
-               tree={memoryTree} 
-               onSelectPerson={setSelectedEntityId}
-             />
+             <TreeDisplay tree={memoryTree} onSelectPerson={setSelectedEntityId} />
            )}
         </div>
 
-        {/* Selected View Title & Controls */}
         <div className="text-center mb-4 animate-fade-in">
           <h2 style={{ fontFamily: 'serif', color: '#556b2f' }}>
             {selectedEntityId 
               ? memoryTree.people.find(p => p.id === selectedEntityId)?.name + "'s Artifacts"
               : "Family Bank: " + memoryTree.familyName}
           </h2>
-          
           {selectedEntityId && (
             <div className="d-flex justify-content-center gap-2 mt-2">
-               <button className="btn btn-sm btn-outline-secondary" onClick={() => startEditPerson(selectedEntityId)}>
-                 Edit Member
-               </button>
-               <button className="btn btn-sm btn-outline-danger" onClick={() => handleDeletePerson(selectedEntityId)}>
-                 Remove Member
-               </button>
+               <button className="btn btn-sm btn-outline-secondary" onClick={() => { setEditingPersonId(selectedEntityId); setShowAddPersonForm(true); }}>Edit Member</button>
+               <button className="btn btn-sm btn-outline-danger" onClick={() => handleDeletePerson(selectedEntityId)}>Remove Member</button>
             </div>
           )}
-
-          <p className="text-muted mt-2">
-            {selectedEntityId 
-              ? "Viewing personal collection" 
-              : "Viewing shared family memories (Center Bank)"}
-          </p>
         </div>
         
         <MemoryList memories={filteredMemories} people={memoryTree.people} />
