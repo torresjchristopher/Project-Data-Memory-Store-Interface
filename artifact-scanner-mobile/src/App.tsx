@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
@@ -81,22 +81,13 @@ function App() {
     setStep('UPLOADING');
     
     try {
-      // For the mobile scanner, we treat Side A as the primary image.
-      // Side B (if present) can be appended or we can modify the schema.
-      // For now, let's combine them into the DELIM format.
-      
-      let finalContent = description;
-      let imageData = frontImage || "";
-      
-      // If there's a back image, we could store it as a separate memory or combine.
-      // Let's assume the web app handles the DELIM format for one image.
-      // If both front/back exist, we'll store them both? 
       // The current web app expects "Text|DELIM|ImageData".
+      const content = frontImage ? `${description}|DELIM|${frontImage}` : description;
       
       const newMemory = {
         id: Math.random().toString(36).substr(2, 9),
         type: frontImage ? 'image' : 'text',
-        content: frontImage ? `${description}|DELIM|${frontImage}` : description,
+        content: content,
         location,
         timestamp: new Date(date),
         tags: {

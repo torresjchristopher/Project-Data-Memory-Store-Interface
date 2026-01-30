@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Artifact Scanner</string>
+    <string name="title_activity_main">Artifact Scanner</string>
+    <string name="package_name">com.yukora.scanner</string>
+    <string name="custom_url_scheme">com.yukora.scanner</string>
+</resources>
