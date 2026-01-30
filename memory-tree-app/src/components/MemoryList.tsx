@@ -24,7 +24,9 @@ const MemoryList: React.FC<MemoryListProps> = ({ memories, people }) => {
                   <span className={`badge ${
                     memory.type === 'text' ? 'bg-primary' : 
                     memory.type === 'image' ? 'bg-success' : 
-                    memory.type === 'audio' ? 'bg-warning' : 'bg-danger'
+                    memory.type === 'audio' ? 'bg-warning' : 
+                    memory.type === 'video' ? 'bg-danger' : 
+                    memory.type === 'document' ? 'bg-info' : 'bg-secondary'
                   }`}>
                     {memory.type.toUpperCase()}
                   </span>

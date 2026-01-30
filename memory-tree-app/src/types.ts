@@ -1,4 +1,4 @@
-export type MemoryType = 'text' | 'image' | 'audio' | 'video';
+export type MemoryType = 'text' | 'image' | 'audio' | 'video' | 'document' | 'pdf';
 
 export interface Person {
   id: string;
@@ -19,6 +19,7 @@ export interface Memory {
 }
 
 export interface MemoryTree {
+  protocolKey?: string;
   people: Person[];
   memories: Memory[];
 }

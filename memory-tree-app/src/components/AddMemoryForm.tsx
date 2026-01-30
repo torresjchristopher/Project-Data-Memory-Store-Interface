@@ -19,6 +19,17 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAd
   const [newPersonName, setNewPersonName] = useState('');
   const [parentId, setParentId] = useState('');
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setContent(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isAddingNewPerson) {
@@ -47,22 +58,23 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAd
   return (
     <div className="card mb-4">
       <div className="card-body">
-        <h2 className="card-title">{isAddingNewPerson ? 'Add New Person' : 'Add New Memory'}</h2>
+        <h2 className="card-title">{isAddingNewPerson ? 'ENTITY REGISTRATION' : 'ARCHIVE ENTRY'}</h2>
         <form onSubmit={handleSubmit}>
+          {/* ... existing switch button ... */}
           <div className="mb-3">
             <button 
               type="button" 
               className="btn btn-outline-secondary btn-sm mb-3"
               onClick={() => setIsAddingNewPerson(!isAddingNewPerson)}
             >
-              {isAddingNewPerson ? 'Switch to Add Memory' : 'Switch to Add Person'}
+              {isAddingNewPerson ? '>> SWITCH TO ARCHIVE ENTRY' : '>> SWITCH TO ENTITY REGISTRATION'}
             </button>
           </div>
 
           {isAddingNewPerson ? (
             <>
               <div className="mb-3">
-                <label className="form-label">Person Name</label>
+                <label className="form-label text-muted small">DESIGNATION / NAME</label>
                 <input 
                   type="text" 
                   className="form-control" 
@@ -72,7 +84,7 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAd
                 />
               </div>
               <div className="mb-3">
-                <label className="form-label">Parent (optional)</label>
+                <label className="form-label text-muted small">PARENT ORIGIN</label>
                 <select className="form-select" value={parentId} onChange={(e) => setParentId(e.target.value)}>
                   <option value="">None (Root)</option>
                   {people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -82,25 +94,37 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAd
           ) : (
             <>
               <div className="mb-3">
-                <label className="form-label">Type</label>
+                <label className="form-label text-muted small">ARCHIVE TYPE</label>
                 <select className="form-select" value={type} onChange={(e) => setType(e.target.value as MemoryType)}>
                   <option value="text">Text</option>
                   <option value="image">Image</option>
                   <option value="audio">Audio</option>
                   <option value="video">Video</option>
+                  <option value="document">Document</option>
+                  <option value="pdf">PDF</option>
                 </select>
               </div>
               <div className="mb-3">
-                <label className="form-label">Content (Text or URL)</label>
-                <textarea 
-                  className="form-control" 
-                  value={content} 
-                  onChange={(e) => setContent(e.target.value)} 
-                  required 
-                />
+                <label className="form-label text-muted small">CONTENT</label>
+                {type === 'text' ? (
+                  <textarea 
+                    className="form-control" 
+                    value={content} 
+                    onChange={(e) => setContent(e.target.value)} 
+                    required 
+                  />
+                ) : (
+                  <input 
+                    type="file" 
+                    className="form-control" 
+                    onChange={handleFileChange} 
+                    accept={type === 'image' ? 'image/*' : type === 'pdf' ? 'application/pdf' : '*/*'}
+                    required 
+                  />
+                )}
               </div>
               <div className="mb-3">
-                <label className="form-label">Location</label>
+                <label className="form-label text-muted small">GEOSPATIAL LOCATION</label>
                 <input 
                   type="text" 
                   className="form-control" 
@@ -110,7 +134,7 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAd
                 />
               </div>
               <div className="mb-3">
-                <label className="form-label">Date</label>
+                <label className="form-label text-muted small">TEMPORAL TIMESTAMP</label>
                 <input 
                   type="date" 
                   className="form-control" 
@@ -120,14 +144,14 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAd
                 />
               </div>
               <div className="mb-3">
-                <label className="form-label">Person</label>
+                <label className="form-label text-muted small">LINKED ENTITY</label>
                 <select 
                   className="form-select" 
                   value={selectedPersonId} 
                   onChange={(e) => setSelectedPersonId(e.target.value)}
                   required
                 >
-                  <option value="">Select a person</option>
+                  <option value="">Select entity</option>
                   {people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </div>
@@ -135,9 +159,9 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAd
           )}
 
           <div className="d-flex justify-content-end">
-            <button type="button" className="btn btn-secondary me-2" onClick={onCancel}>Cancel</button>
+            <button type="button" className="btn btn-secondary me-2" onClick={onCancel}>CANCEL</button>
             <button type="submit" className="btn btn-success">
-              {isAddingNewPerson ? 'Add Person' : 'Add Memory'}
+              {isAddingNewPerson ? 'ADD ENTITY' : 'SUBMIT ENTRY'}
             </button>
           </div>
         </form>
