@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://yukora.site",
+  "homepage": "https://schnitzelbank.org",
   "scripts": {
     "dev": "vite",
     "predeploy": "npm run build",
