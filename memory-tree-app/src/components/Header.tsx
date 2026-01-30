@@ -7,12 +7,16 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onAddMemoryClick, onExportClick }) => {
   return (
-    <nav className="navbar navbar-expand-lg navbar-light bg-light">
-      <div className="container-fluid">
-        <a className="navbar-brand" href="#">Memory Tree</a>
-        <div className="d-flex">
-          <button className="btn btn-primary me-2" onClick={onAddMemoryClick}>Add Memory</button>
-          <button className="btn btn-secondary" onClick={onExportClick}>Export to PDF</button>
+    <nav className="navbar navbar-expand-lg navbar-light bg-white sticky-top">
+      <div className="container">
+        <span className="navbar-brand mb-0 h1">Family Memory Tree</span>
+        <div className="d-flex gap-2">
+          <button className="btn btn-primary" onClick={onAddMemoryClick}>
+            <span className="me-2">+</span>Add New Memory
+          </button>
+          <button className="btn btn-outline-secondary" onClick={onExportClick}>
+            Download Archive (PDF)
+          </button>
         </div>
       </div>
     </nav>

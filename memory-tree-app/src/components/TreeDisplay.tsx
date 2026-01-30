@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
-import type { MemoryTree } from '../types';
+import type { MemoryTree, Person } from '../types';
 
 interface TreeDisplayProps {
   tree: MemoryTree;
@@ -14,126 +14,134 @@ const TreeDisplay: React.FC<TreeDisplayProps> = ({ tree }) => {
       const svg = d3.select(d3Container.current);
       svg.selectAll("*").remove();
 
-      const width = 1000;
-      const height = 600;
+      const width = 1200;
+      const height = 800;
       
       const mainSvg = svg
          .attr('viewBox', `0 0 ${width} ${height}`)
          .attr('width', '100%')
          .attr('height', 'auto')
-         .style('cursor', 'default');
+         .style('background-color', '#fff');
 
-      const g = mainSvg.append("g").attr("transform", "translate(100,50)");
+      const g = mainSvg.append("g").attr("transform", "translate(50,50)");
 
       try {
+        // 1. Prepare data - handle multiple roots by adding a virtual super-root
+        const dataWithVirtualRoot = [
+          { id: 'VIRTUAL_ROOT', name: '', parentId: undefined },
+          ...tree.people.map(p => ({
+            ...p,
+            parentId: p.parentId || 'VIRTUAL_ROOT'
+          }))
+        ];
+
         const root = d3.stratify()
           .id((d: any) => d.id)
           .parentId((d: any) => d.parentId)
-          (tree.people);
+          (dataWithVirtualRoot);
         
-        const treeLayout = d3.tree().size([height - 100, width - 300]);
+        const treeLayout = d3.tree().size([height - 150, width - 250]);
         const treeData = treeLayout(root);
 
-        // Adjust placement based on memory age
-        treeData.descendants().forEach((d: any) => {
-          const personMemories = tree.memories.filter(m => m.personIds.includes(d.id));
-          if (personMemories.length > 0) {
-            const timestamps = personMemories.map(m => new Date(m.timestamp).getTime());
-            const medianTimestamp = d3.median(timestamps) || Date.now();
-            const year = new Date(medianTimestamp).getFullYear();
-            const currentYear = new Date().getFullYear();
-            const ageFactor = Math.max(0, currentYear - year);
-            d.y = d.depth * 180 + (ageFactor * 2);
-          } else {
-            d.y = d.depth * 180;
-          }
-        });
+        // Filter out virtual root links and nodes for rendering
+        const descendants = treeData.descendants().filter(d => d.id !== 'VIRTUAL_ROOT');
+        const links = treeData.links().filter(l => l.source.id !== 'VIRTUAL_ROOT');
 
-        // Links
-        const link = g.selectAll('.link')
-          .data(treeData.links());
-
-        link.enter()
+        // Links - Step-like paths
+        g.selectAll('.link')
+          .data(links)
+          .enter()
           .append('path')
           .attr('class', 'link')
-          .merge(link as any)
-          .transition().duration(750)
-          .attr('d', d3.linkHorizontal()
-            .x((d: any) => d.y)
-            .y((d: any) => d.x) as any
-          )
+          .attr('d', (d: any) => {
+            // Horizontal step-like path
+            return `M${d.source.y},${d.source.x}
+                    H${(d.source.y + d.target.y) / 2}
+                    V${d.target.x}
+                    H${d.target.y}`;
+          })
           .style('fill', 'none')
-          .style('stroke', '#008f11')
-          .style('stroke-opacity', 0.4)
-          .style('stroke-width', '1.5px');
-
-        // Nodes
-        const node = g.selectAll('.node')
-          .data(treeData.descendants());
-
-        const nodeEnter = node.enter()
-          .append('g')
-          .attr('class', 'node')
-          .attr('transform', (d: any) => `translate(${d.y},${d.x})`)
-          .style('cursor', 'pointer');
-
-        nodeEnter.append('circle')
-          .attr('r', 12)
-          .style('fill', '#000')
-          .style('stroke', '#00ff41')
+          .style('stroke', '#d2b48c')
           .style('stroke-width', '2px');
 
-        node.merge(nodeEnter as any)
-          .transition().duration(750)
+        // Nodes (People Cards)
+        const node = g.selectAll('.node')
+          .data(descendants)
+          .enter()
+          .append('g')
+          .attr('class', 'node')
           .attr('transform', (d: any) => `translate(${d.y},${d.x})`);
 
-        nodeEnter.append('text')
-          .attr('dy', '.35em')
-          .attr('x', (d: any) => d.children ? -18 : 18)
-          .style('text-anchor', (d: any) => d.children ? 'end' : 'start')
-          .style('fill', '#00ff41')
-          .style('font-family', 'Courier New')
-          .style('font-size', '14px')
+        const cardWidth = 160;
+        const cardHeight = 50;
+
+        // Card Rectangle
+        node.append('rect')
+          .attr('x', -10)
+          .attr('y', -cardHeight / 2)
+          .attr('width', cardWidth)
+          .attr('height', cardHeight)
+          .attr('rx', 6)
+          .style('fill', '#fff')
+          .style('stroke', '#556b2f')
+          .style('stroke-width', '2px')
+          .style('filter', 'drop-shadow(0px 2px 2px rgba(0,0,0,0.1))');
+
+        // Name Text
+        node.append('text')
+          .attr('x', 15)
+          .attr('y', 4)
+          .style('fill', '#2c3e50')
+          .style('font-family', 'var(--app-font-body)')
+          .style('font-size', '13px')
+          .style('font-weight', 'bold')
           .text((d: any) => d.data.name);
 
-        // Memory Bubbles
-        node.merge(nodeEnter as any).each(function(d: any) {
-          const nodeG = d3.select(this);
-          nodeG.selectAll('.memory-bubble').remove();
-          
+        // Memory Count Badge
+        node.each(function(d: any) {
           const personMemories = tree.memories.filter(m => m.personIds.includes(d.id));
           if (personMemories.length > 0) {
-            const bubble = nodeG.append('g').attr('class', 'memory-bubble');
-            bubble.append('circle')
-              .attr('cy', -22)
-              .attr('r', 8)
-              .style('fill', '#00ff41');
-            bubble.append('text')
-              .attr('y', -22)
-              .attr('dy', '.35em')
+            const badgeG = d3.select(this).append('g');
+            
+            badgeG.append('circle')
+              .attr('cx', cardWidth - 10)
+              .attr('cy', -cardHeight / 2)
+              .attr('r', 10)
+              .style('fill', '#8fbc8f');
+
+            badgeG.append('text')
+              .attr('x', cardWidth - 10)
+              .attr('cy', -cardHeight / 2)
+              .attr('dy', '4px')
               .style('text-anchor', 'middle')
+              .style('fill', '#fff')
               .style('font-size', '10px')
-              .style('fill', '#000')
+              .style('font-weight', 'bold')
               .text(personMemories.length);
           }
         });
 
       } catch (e) {
-        console.error("Tree stratification failed", e);
-        svg.append('text')
+        console.error("Tree construction failed", e);
+        mainSvg.append('text')
           .attr('x', width/2)
           .attr('y', height/2)
           .style('text-anchor', 'middle')
-          .style('fill', '#ff0000')
-          .style('font-family', 'Courier New')
-          .text("PROTOCOL ERROR: DISCONNECTED NODES DETECTED.");
+          .style('fill', '#95a5a6')
+          .text("Add family members to see your tree visualization.");
       }
     }
   }, [tree]);
 
   return (
-    <div style={{ backgroundColor: '#000', padding: '10px', border: '1px solid #008f11' }}>
-      <svg ref={d3Container} />
+    <div className="card shadow-sm border-0 p-3 bg-white" style={{ borderRadius: '12px' }}>
+      <div className="d-flex justify-content-between align-items-center mb-3 px-2">
+        <h5 className="mb-0 fw-bold" style={{ color: '#556b2f' }}>Visual Genealogy</h5>
+        <small className="text-muted">Interactive Family Map</small>
+      </div>
+      <div className="overflow-auto border rounded bg-light" style={{ maxHeight: '600px' }}>
+        <svg ref={d3Container} />
+      </div>
     </div>
   );
 };

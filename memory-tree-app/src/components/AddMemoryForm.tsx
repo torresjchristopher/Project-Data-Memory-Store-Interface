@@ -8,14 +8,21 @@ interface AddMemoryFormProps {
   onCancel: () => void;
 }
 
+type SubmissionMode = 'STORY' | 'FILE' | 'BOTH';
+
 const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAddPerson, onCancel }) => {
-  const [type, setType] = useState<MemoryType>('text');
+  const [isAddingNewPerson, setIsAddingNewPerson] = useState(false);
+  const [submissionMode, setSubmissionMode] = useState<SubmissionMode>('STORY');
+  
+  // Memory Fields
   const [content, setContent] = useState('');
+  const [fileData, setFileData] = useState<string | null>(null);
+  const [fileType, setFileType] = useState<MemoryType>('image');
   const [location, setLocation] = useState('');
-  const [date, setDate] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedPersonId, setSelectedPersonId] = useState('');
   
-  const [isAddingNewPerson, setIsAddingNewPerson] = useState(false);
+  // Person Fields
   const [newPersonName, setNewPersonName] = useState('');
   const [parentId, setParentId] = useState('');
 
@@ -24,7 +31,13 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAd
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setContent(reader.result as string);
+        setFileData(reader.result as string);
+        // Basic type detection
+        if (file.type.startsWith('image/')) setFileType('image');
+        else if (file.type.startsWith('audio/')) setFileType('audio');
+        else if (file.type.startsWith('video/')) setFileType('video');
+        else if (file.type === 'application/pdf') setFileType('pdf');
+        else setFileType('document');
       };
       reader.readAsDataURL(file);
     }
@@ -32,136 +45,179 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAd
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (isAddingNewPerson) {
-      const newPerson: Person = {
+      if (!newPersonName.trim()) return;
+      onAddPerson({
         id: Math.random().toString(36).substr(2, 9),
-        name: newPersonName,
+        name: newPersonName.trim(),
         parentId: parentId || undefined,
-      };
-      onAddPerson(newPerson);
+      });
       setIsAddingNewPerson(false);
       setNewPersonName('');
     } else {
-      const newMemory: Memory = {
+      if (!selectedPersonId) {
+        alert("Please select a family member for this memory.");
+        return;
+      }
+
+      const finalType = submissionMode === 'STORY' ? 'text' : fileType;
+      const finalContent = submissionMode === 'STORY' ? content : (submissionMode === 'FILE' ? (fileData || '') : `${content}\n\n[FILE_ATTACHED]`);
+      
+      // If BOTH, we store the file data in a way that includes the description
+      // For simplicity in this version, we'll store the text. 
+      // A more robust app would store multiple fields, but we'll stick to the current Memory type.
+      
+      onAddMemory({
         id: Math.random().toString(36).substr(2, 9),
-        type,
-        content,
+        type: finalType,
+        content: submissionMode === 'BOTH' ? `${content}|DELIM|${fileData}` : (submissionMode === 'STORY' ? content : (fileData || '')),
         location,
         timestamp: new Date(date),
         personIds: [selectedPersonId],
-      };
-      onAddMemory(newMemory);
+      });
       onCancel();
     }
   };
 
   return (
-    <div className="card mb-4">
-      <div className="card-body">
-        <h2 className="card-title">{isAddingNewPerson ? 'ENTITY REGISTRATION' : 'ARCHIVE ENTRY'}</h2>
+    <div className="card mb-4 shadow-sm border-0">
+      <div className="card-header bg-white border-bottom p-4">
+        <div className="d-flex justify-content-between align-items-center">
+          <h4 className="mb-0 fw-bold" style={{ color: '#556b2f' }}>
+            {isAddingNewPerson ? 'Register Family Member' : 'Preserve a Memory'}
+          </h4>
+          <button 
+            type="button" 
+            className="btn btn-link text-decoration-none p-0 fw-bold"
+            style={{ color: '#8fbc8f' }}
+            onClick={() => setIsAddingNewPerson(!isAddingNewPerson)}
+          >
+            {isAddingNewPerson ? '← Back to Memories' : '+ Add New Person'}
+          </button>
+        </div>
+      </div>
+      
+      <div className="card-body p-4">
         <form onSubmit={handleSubmit}>
-          {/* ... existing switch button ... */}
-          <div className="mb-3">
-            <button 
-              type="button" 
-              className="btn btn-outline-secondary btn-sm mb-3"
-              onClick={() => setIsAddingNewPerson(!isAddingNewPerson)}
-            >
-              {isAddingNewPerson ? '>> SWITCH TO ARCHIVE ENTRY' : '>> SWITCH TO ENTITY REGISTRATION'}
-            </button>
-          </div>
-
           {isAddingNewPerson ? (
-            <>
-              <div className="mb-3">
-                <label className="form-label text-muted small">DESIGNATION / NAME</label>
+            <div className="animate-fade-in">
+              <div className="mb-4">
+                <label className="form-label fw-bold">Full Legal or Preferred Name</label>
                 <input 
                   type="text" 
-                  className="form-control" 
+                  className="form-control form-control-lg border-2" 
+                  placeholder="e.g. Mary Elizabeth Smith"
                   value={newPersonName} 
                   onChange={(e) => setNewPersonName(e.target.value)} 
                   required 
                 />
               </div>
-              <div className="mb-3">
-                <label className="form-label text-muted small">PARENT ORIGIN</label>
-                <select className="form-select" value={parentId} onChange={(e) => setParentId(e.target.value)}>
-                  <option value="">None (Root)</option>
+              <div className="mb-4">
+                <label className="form-label fw-bold">Parent / Biological Connection</label>
+                <select className="form-select form-select-lg border-2" value={parentId} onChange={(e) => setParentId(e.target.value)}>
+                  <option value="">No Direct Connection (Root Person)</option>
                   {people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
+                <p className="form-text mt-2">Connecting people helps build your family tree visualization.</p>
               </div>
-            </>
+            </div>
           ) : (
-            <>
-              <div className="mb-3">
-                <label className="form-label text-muted small">ARCHIVE TYPE</label>
-                <select className="form-select" value={type} onChange={(e) => setType(e.target.value as MemoryType)}>
-                  <option value="text">Text</option>
-                  <option value="image">Image</option>
-                  <option value="audio">Audio</option>
-                  <option value="video">Video</option>
-                  <option value="document">Document</option>
-                  <option value="pdf">PDF</option>
-                </select>
+            <div className="animate-fade-in">
+              <div className="mb-4">
+                <label className="form-label fw-bold d-block mb-3">What would you like to share?</label>
+                <div className="btn-group w-100" role="group">
+                  <input type="radio" className="btn-check" name="mode" id="m1" checked={submissionMode === 'STORY'} onChange={() => setSubmissionMode('STORY')} />
+                  <label className="btn btn-outline-primary py-3" htmlFor="m1">Write a Story</label>
+                  
+                  <input type="radio" className="btn-check" name="mode" id="m2" checked={submissionMode === 'FILE'} onChange={() => setSubmissionMode('FILE')} />
+                  <label className="btn btn-outline-primary py-3" htmlFor="m2">Upload a Photo</label>
+                  
+                  <input type="radio" className="btn-check" name="mode" id="m3" checked={submissionMode === 'BOTH'} onChange={() => setSubmissionMode('BOTH')} />
+                  <label className="btn btn-outline-primary py-3" htmlFor="m3">Photo + Story</label>
+                </div>
               </div>
-              <div className="mb-3">
-                <label className="form-label text-muted small">CONTENT</label>
-                {type === 'text' ? (
+
+              {(submissionMode === 'STORY' || submissionMode === 'BOTH') && (
+                <div className="mb-4">
+                  <label className="form-label fw-bold">The Story</label>
                   <textarea 
-                    className="form-control" 
+                    className="form-control border-2" 
+                    rows={5}
+                    placeholder="Tell the story of this moment..."
                     value={content} 
                     onChange={(e) => setContent(e.target.value)} 
                     required 
                   />
-                ) : (
+                </div>
+              )}
+
+              {(submissionMode === 'FILE' || submissionMode === 'BOTH') && (
+                <div className="mb-4">
+                  <label className="form-label fw-bold">Choose Photo or File</label>
+                  <div className="p-4 border-2 border-dashed rounded text-center bg-light" style={{ border: '2px dashed #ced4da' }}>
+                    <input 
+                      type="file" 
+                      id="fileInput"
+                      className="d-none" 
+                      onChange={handleFileChange} 
+                      accept="image/*,audio/*,video/*,.pdf"
+                    />
+                    <label htmlFor="fileInput" className="btn btn-secondary px-4">
+                      {fileData ? 'Change File' : 'Select File'}
+                    </label>
+                    {fileData && (
+                      <div className="mt-2 text-success small fw-bold">
+                        ✓ File ready for preservation
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="row">
+                <div className="col-md-6 mb-4">
+                  <label className="form-label fw-bold">Location</label>
                   <input 
-                    type="file" 
-                    className="form-control" 
-                    onChange={handleFileChange} 
-                    accept={type === 'image' ? 'image/*' : type === 'pdf' ? 'application/pdf' : '*/*'}
+                    type="text" 
+                    className="form-control border-2" 
+                    placeholder="e.g. Family Farm, Ohio"
+                    value={location} 
+                    onChange={(e) => setLocation(e.target.value)} 
                     required 
                   />
-                )}
+                </div>
+                <div className="col-md-6 mb-4">
+                  <label className="form-label fw-bold">Approximate Date</label>
+                  <input 
+                    type="date" 
+                    className="form-control border-2" 
+                    value={date} 
+                    onChange={(e) => setDate(e.target.value)} 
+                    required 
+                  />
+                </div>
               </div>
-              <div className="mb-3">
-                <label className="form-label text-muted small">GEOSPATIAL LOCATION</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  value={location} 
-                  onChange={(e) => setLocation(e.target.value)} 
-                  required 
-                />
-              </div>
-              <div className="mb-3">
-                <label className="form-label text-muted small">TEMPORAL TIMESTAMP</label>
-                <input 
-                  type="date" 
-                  className="form-control" 
-                  value={date} 
-                  onChange={(e) => setDate(e.target.value)} 
-                  required 
-                />
-              </div>
-              <div className="mb-3">
-                <label className="form-label text-muted small">LINKED ENTITY</label>
+
+              <div className="mb-4">
+                <label className="form-label fw-bold">Who is this memory about?</label>
                 <select 
-                  className="form-select" 
+                  className="form-select border-2 form-select-lg" 
                   value={selectedPersonId} 
                   onChange={(e) => setSelectedPersonId(e.target.value)}
                   required
                 >
-                  <option value="">Select entity</option>
+                  <option value="">Select a family member...</option>
                   {people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </div>
-            </>
+            </div>
           )}
 
-          <div className="d-flex justify-content-end">
-            <button type="button" className="btn btn-secondary me-2" onClick={onCancel}>CANCEL</button>
-            <button type="submit" className="btn btn-success">
-              {isAddingNewPerson ? 'ADD ENTITY' : 'SUBMIT ENTRY'}
+          <div className="d-flex justify-content-end gap-3 pt-3">
+            <button type="button" className="btn btn-light btn-lg px-5" onClick={onCancel}>Cancel</button>
+            <button type="submit" className="btn btn-primary btn-lg px-5 shadow-sm">
+              {isAddingNewPerson ? 'Save Member' : 'Preserve Memory'}
             </button>
           </div>
         </form>
