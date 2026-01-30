@@ -24,30 +24,25 @@ const TreeDisplay: React.FC<TreeDisplayProps> = ({ tree, onSelectPerson }) => {
          .attr('viewBox', `0 0 ${width} ${height}`)
          .style('background-color', '#fdfbf7')
          .style('border-radius', '50%')
-         .style('box-shadow', 'inset 0 0 50px rgba(85, 107, 47, 0.1)');
+         .style('box-shadow', 'inset 0 0 50px rgba(85, 107, 47, 0.1)')
+         .style('transition', 'all 0.5s ease');
 
       // --- LOGIC: GENERATION BANDS ---
-      // 1. Sort by age (oldest first)
       const sortedPeople = [...tree.people].sort((a, b) => a.birthYear - b.birthYear);
       
       if (sortedPeople.length === 0) return;
 
       const oldestYear = sortedPeople[0].birthYear;
-      const youngestYear = sortedPeople[sortedPeople.length - 1].birthYear;
-      
-      // Create bands of ~25 years (Generations)
       const generationSpan = 25;
       const bands: Person[][] = [];
       
       sortedPeople.forEach(p => {
-        // older people have smaller diff, so smaller index -> inner ring
         const diff = p.birthYear - oldestYear; 
         const bandIndex = Math.floor(diff / generationSpan);
         if (!bands[bandIndex]) bands[bandIndex] = [];
         bands[bandIndex].push(p);
       });
 
-      // Filter out empty bands in case of gaps
       const activeBands = bands.filter(b => b && b.length > 0);
       const ringSpacing = 120; // Distance between rings
 
@@ -62,12 +57,11 @@ const TreeDisplay: React.FC<TreeDisplayProps> = ({ tree, onSelectPerson }) => {
           .attr("cy", center.y)
           .attr("r", radius)
           .style("fill", "none")
-          .style("stroke", "#d2b48c") // Tan wood color
+          .style("stroke", "#d2b48c") 
           .style("stroke-width", "2px")
           .style("stroke-dasharray", "10,5")
           .style("opacity", 0.6);
           
-        // Label the Ring (Generation Year Range)
         const startYear = oldestYear + (index * generationSpan);
         g.append("text")
            .attr("x", center.x)
@@ -79,20 +73,28 @@ const TreeDisplay: React.FC<TreeDisplayProps> = ({ tree, onSelectPerson }) => {
       });
 
       // 2. Center "Heart" (The Family Bank)
+      const isFamilySelected = selectedId === 'FAMILY';
       const familyNode = g.append("g")
         .style("cursor", "pointer")
         .on("click", () => {
           setSelectedId('FAMILY');
           onSelectPerson(null);
+        })
+        .on("mouseover", function() {
+           d3.select(this).select("circle").attr("r", 55).style("filter", "drop-shadow(0 0 8px rgba(85,107,47,0.4))");
+        })
+        .on("mouseout", function() {
+           if (!isFamilySelected) d3.select(this).select("circle").attr("r", 50).style("filter", "none");
         });
 
       familyNode.append("circle")
         .attr("cx", center.x)
         .attr("cy", center.y)
-        .attr("r", 50)
-        .style("fill", selectedId === 'FAMILY' ? "#556b2f" : "#8fbc8f")
+        .attr("r", isFamilySelected ? 55 : 50)
+        .style("fill", isFamilySelected ? "#556b2f" : "#8fbc8f")
         .style("stroke", "#2c3e50")
-        .style("stroke-width", "4px");
+        .style("stroke-width", isFamilySelected ? "5px" : "4px")
+        .style("transition", "all 0.3s ease");
 
       familyNode.append("text")
         .attr("x", center.x)
@@ -101,6 +103,7 @@ const TreeDisplay: React.FC<TreeDisplayProps> = ({ tree, onSelectPerson }) => {
         .style("font-family", "serif")
         .style("font-weight", "bold")
         .style("fill", "#fff")
+        .style("pointer-events", "none")
         .text(tree.familyName || "FAMILY");
 
       // 3. Place People on Rings
@@ -109,10 +112,12 @@ const TreeDisplay: React.FC<TreeDisplayProps> = ({ tree, onSelectPerson }) => {
         const angleStep = (2 * Math.PI) / bandMembers.length;
 
         bandMembers.forEach((person, i) => {
-          const angle = (i * angleStep) - (Math.PI / 2); // Start at top
+          const angle = (i * angleStep) - (Math.PI / 2);
           const x = center.x + radius * Math.cos(angle);
           const y = center.y + radius * Math.sin(angle);
 
+          const isSelected = selectedId === person.id;
+          
           const personNode = g.append("g")
             .attr("transform", `translate(${x},${y})`)
             .style("cursor", "pointer")
@@ -120,18 +125,27 @@ const TreeDisplay: React.FC<TreeDisplayProps> = ({ tree, onSelectPerson }) => {
               e.stopPropagation();
               setSelectedId(person.id);
               onSelectPerson(person.id);
+            })
+            .on("mouseover", function() {
+                d3.select(this).select("circle")
+                  .transition().duration(200)
+                  .attr("r", isSelected ? 30 : 22)
+                  .style("fill", "#f0fdf4");
+            })
+            .on("mouseout", function() {
+                d3.select(this).select("circle")
+                  .transition().duration(200)
+                  .attr("r", isSelected ? 28 : 18)
+                  .style("fill", "#fff");
             });
-
-          // Check if selected
-          const isSelected = selectedId === person.id;
 
           // Node Circle
           personNode.append("circle")
-            .attr("r", isSelected ? 25 : 18)
+            .attr("r", isSelected ? 28 : 18)
             .style("fill", "#fff")
             .style("stroke", isSelected ? "#556b2f" : "#2c3e50")
-            .style("stroke-width", isSelected ? "3px" : "2px")
-            .transition().duration(300);
+            .style("stroke-width", isSelected ? "4px" : "2px")
+            .style("filter", isSelected ? "drop-shadow(0 4px 6px rgba(0,0,0,0.2))" : "drop-shadow(0 2px 2px rgba(0,0,0,0.1))");
 
           // Name Label
           personNode.append("text")
@@ -140,7 +154,11 @@ const TreeDisplay: React.FC<TreeDisplayProps> = ({ tree, onSelectPerson }) => {
             .style("font-size", isSelected ? "14px" : "12px")
             .style("font-weight", isSelected ? "bold" : "normal")
             .style("fill", "#2c3e50")
-            .style("text-shadow", "0 1px 2px rgba(255,255,255,0.8)")
+            .style("paint-order", "stroke")
+            .style("stroke", "#fff")
+            .style("stroke-width", "3px")
+            .style("stroke-linecap", "round")
+            .style("stroke-linejoin", "round")
             .text(person.name);
             
            // Year Label
@@ -151,20 +169,22 @@ const TreeDisplay: React.FC<TreeDisplayProps> = ({ tree, onSelectPerson }) => {
             .style("fill", "#7f8c8d")
             .text(person.birthYear);
 
-          // Memory Count Badge (if any)
+          // Memory Count Badge
           const memCount = tree.memories.filter(m => m.tags.personIds.includes(person.id)).length;
           if (memCount > 0) {
             personNode.append("circle")
               .attr("cx", 15)
               .attr("cy", -15)
-              .attr("r", 8)
-              .style("fill", "#d2b48c");
+              .attr("r", 9)
+              .style("fill", "#d2b48c")
+              .style("stroke", "#fff");
             
             personNode.append("text")
               .attr("x", 15)
-              .attr("y", -13)
+              .attr("y", -12)
               .style("text-anchor", "middle")
-              .style("font-size", "9px")
+              .style("font-size", "10px")
+              .style("font-weight", "bold")
               .style("fill", "#fff")
               .text(memCount);
           }
@@ -175,7 +195,7 @@ const TreeDisplay: React.FC<TreeDisplayProps> = ({ tree, onSelectPerson }) => {
   }, [tree, selectedId]);
 
   return (
-    <div className="d-flex justify-content-center py-4 bg-white rounded shadow-sm">
+    <div className="d-flex justify-content-center py-4 bg-white rounded shadow-sm animate-fade-in">
       <div style={{ width: '100%', maxWidth: '800px', aspectRatio: '1/1' }}>
         <svg ref={d3Container} style={{ width: '100%', height: '100%' }} />
       </div>

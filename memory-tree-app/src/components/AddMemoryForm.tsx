@@ -8,16 +8,13 @@ interface AddMemoryFormProps {
   onCancel: () => void;
 }
 
-type SubmissionMode = 'STORY' | 'FILE' | 'BOTH';
-
 const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAddPerson, onCancel }) => {
   const [isAddingNewPerson, setIsAddingNewPerson] = useState(false);
-  const [submissionMode, setSubmissionMode] = useState<SubmissionMode>('STORY');
   
   // Memory Fields
   const [content, setContent] = useState('');
   const [fileData, setFileData] = useState<string | null>(null);
-  const [fileType, setFileType] = useState<MemoryType>('image');
+  const [fileType, setFileType] = useState<MemoryType>('text'); // Default to text if no file
   const [location, setLocation] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   
@@ -42,6 +39,9 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAd
         else setFileType('document');
       };
       reader.readAsDataURL(file);
+    } else {
+        setFileData(null);
+        setFileType('text');
     }
   };
 
@@ -54,23 +54,39 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAd
         id: Math.random().toString(36).substr(2, 9),
         name: newPersonName.trim(),
         birthYear: parseInt(birthYear),
-        parentId: undefined, // No longer strictly needed for ring visualization
+        parentId: undefined,
       });
       setIsAddingNewPerson(false);
       setNewPersonName('');
       setBirthYear('');
     } else {
+      // VALIDATION: Must have either text OR file
+      if (!content.trim() && !fileData) {
+        alert("Please provide either a story description OR upload a file.");
+        return;
+      }
+
       if (tagScope === 'PERSON' && !selectedPersonId) {
         alert("Please select a family member.");
         return;
       }
 
-      const finalType = submissionMode === 'STORY' ? 'text' : fileType;
+      // Determine final type
+      const finalType = fileData ? fileType : 'text';
+      
+      // Construct content string
+      // If both: "Description|DELIM|File"
+      // If only file: "|DELIM|File" (empty text part)
+      // If only text: "Description"
+      let finalContent = content;
+      if (fileData) {
+          finalContent = `${content}|DELIM|${fileData}`;
+      }
       
       onAddMemory({
         id: Math.random().toString(36).substr(2, 9),
         type: finalType,
-        content: submissionMode === 'BOTH' ? `${content}|DELIM|${fileData}` : (submissionMode === 'STORY' ? content : (fileData || '')),
+        content: finalContent,
         location,
         timestamp: new Date(date),
         tags: {
@@ -83,7 +99,7 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAd
   };
 
   return (
-    <div className="card mb-4 shadow-sm border-0">
+    <div className="card mb-4 shadow-sm border-0 animate-fade-in" style={{ borderLeft: '5px solid #556b2f' }}>
       <div className="card-header bg-white border-bottom p-4">
         <div className="d-flex justify-content-between align-items-center">
           <h4 className="mb-0 fw-bold" style={{ color: '#556b2f' }}>
@@ -95,7 +111,7 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAd
             style={{ color: '#8fbc8f' }}
             onClick={() => setIsAddingNewPerson(!isAddingNewPerson)}
           >
-            {isAddingNewPerson ? '← Back to Memories' : '+ Add New Person'}
+            {isAddingNewPerson ? '← Back to Memories' : '+ Register New Person'}
           </button>
         </div>
       </div>
@@ -116,7 +132,7 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAd
                 />
               </div>
               <div className="mb-4">
-                <label className="form-label fw-bold">Birth Year (Crucial for Tree Placement)</label>
+                <label className="form-label fw-bold">Birth Year</label>
                 <input 
                   type="number" 
                   className="form-control form-control-lg border-2" 
@@ -125,27 +141,13 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAd
                   onChange={(e) => setBirthYear(e.target.value)} 
                   required 
                 />
-                <div className="form-text">Oldest members will appear in the center ring.</div>
+                <div className="form-text">Used to place them in the correct generation ring.</div>
               </div>
             </div>
           ) : (
             <div className="animate-fade-in">
-              {/* Submission Mode Selection */}
-              <div className="mb-4">
-                <label className="form-label fw-bold d-block mb-3">What are you adding?</label>
-                <div className="btn-group w-100" role="group">
-                  <input type="radio" className="btn-check" name="mode" id="m1" checked={submissionMode === 'STORY'} onChange={() => setSubmissionMode('STORY')} />
-                  <label className="btn btn-outline-primary py-3" htmlFor="m1">Story</label>
-                  
-                  <input type="radio" className="btn-check" name="mode" id="m2" checked={submissionMode === 'FILE'} onChange={() => setSubmissionMode('FILE')} />
-                  <label className="btn btn-outline-primary py-3" htmlFor="m2">Photo</label>
-                  
-                  <input type="radio" className="btn-check" name="mode" id="m3" checked={submissionMode === 'BOTH'} onChange={() => setSubmissionMode('BOTH')} />
-                  <label className="btn btn-outline-primary py-3" htmlFor="m3">Both</label>
-                </div>
-              </div>
-
-              {/* Tagging Section */}
+              
+              {/* WHO */}
               <div className="mb-4 p-3 bg-light rounded border">
                 <label className="form-label fw-bold">Who is this for?</label>
                 <div className="d-flex gap-3 mb-3">
@@ -172,48 +174,54 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemory, onAd
                 )}
               </div>
 
-              {(submissionMode === 'STORY' || submissionMode === 'BOTH') && (
-                <div className="mb-4">
-                  <label className="form-label fw-bold">The Story</label>
-                  <textarea 
-                    className="form-control border-2" 
-                    rows={5}
-                    value={content} 
-                    onChange={(e) => setContent(e.target.value)} 
-                    required 
-                  />
-                </div>
-              )}
+              {/* WHAT (Unified) */}
+              <div className="row">
+                  <div className="col-md-7 mb-3">
+                      <label className="form-label fw-bold">Description / Story (Optional if file attached)</label>
+                      <textarea 
+                        className="form-control border-2" 
+                        rows={5}
+                        placeholder="What is happening in this memory?"
+                        value={content} 
+                        onChange={(e) => setContent(e.target.value)} 
+                      />
+                  </div>
+                  <div className="col-md-5 mb-3">
+                      <label className="form-label fw-bold">Attach File (Optional if story written)</label>
+                      <div className={`p-4 border-2 border-dashed rounded text-center ${fileData ? 'bg-success-subtle border-success' : 'bg-light'}`} style={{ borderStyle: 'dashed' }}>
+                        <input 
+                            type="file" 
+                            id="fileUpload"
+                            className="d-none" 
+                            onChange={handleFileChange} 
+                            accept="image/*,audio/*,video/*,.pdf"
+                        />
+                        <label htmlFor="fileUpload" className="btn btn-outline-secondary">
+                            {fileData ? 'Change File' : 'Select File'}
+                        </label>
+                        {fileData && <div className="mt-2 small text-success fw-bold">✓ Attached</div>}
+                      </div>
+                  </div>
+              </div>
 
-              {(submissionMode === 'FILE' || submissionMode === 'BOTH') && (
-                <div className="mb-4">
-                  <label className="form-label fw-bold">File Upload</label>
-                  <input 
-                    type="file" 
-                    className="form-control" 
-                    onChange={handleFileChange} 
-                    accept="image/*,audio/*,video/*,.pdf"
-                  />
-                </div>
-              )}
-
+              {/* WHEN & WHERE */}
               <div className="row">
                 <div className="col-md-6 mb-4">
                   <label className="form-label fw-bold">Location</label>
-                  <input type="text" className="form-control border-2" value={location} onChange={(e) => setLocation(e.target.value)} required />
+                  <input type="text" className="form-control border-2" value={location} onChange={(e) => setLocation(e.target.value)} />
                 </div>
                 <div className="col-md-6 mb-4">
-                  <label className="form-label fw-bold">Date</label>
+                  <label className="form-label fw-bold">Approximate Date</label>
                   <input type="date" className="form-control border-2" value={date} onChange={(e) => setDate(e.target.value)} required />
                 </div>
               </div>
             </div>
           )}
 
-          <div className="d-flex justify-content-end gap-3 pt-3">
-            <button type="button" className="btn btn-light btn-lg px-5" onClick={onCancel}>Cancel</button>
-            <button type="submit" className="btn btn-primary btn-lg px-5 shadow-sm">
-              {isAddingNewPerson ? 'Register Member' : 'Preserve Memory'}
+          <div className="d-flex justify-content-end gap-3 pt-3 border-top">
+            <button type="button" className="btn btn-light px-4" onClick={onCancel}>Cancel</button>
+            <button type="submit" className="btn btn-primary px-5 shadow-sm">
+              {isAddingNewPerson ? 'Register Member' : 'Save Memory'}
             </button>
           </div>
         </form>
