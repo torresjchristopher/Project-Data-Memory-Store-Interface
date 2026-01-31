@@ -2,9 +2,10 @@
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-// Yukora Sovereign Infrastructure - Shared Config
+// Yukora Sovereign Infrastructure - SECURE CONFIG
+// DO NOT COMMIT ACTUAL KEYS TO GITHUB
 const firebaseConfig = {
-  apiKey: "AIzaSyB1kn7TwyUeQRLErHfM2KSD8RPi7tJarH8",
+  apiKey: "REPLACED_BY_ENV_OR_USER",
   authDomain: "schnitzelbank-a.firebaseapp.com",
   projectId: "schnitzelbank-a",
   storageBucket: "schnitzelbank-a.firebasestorage.app",
