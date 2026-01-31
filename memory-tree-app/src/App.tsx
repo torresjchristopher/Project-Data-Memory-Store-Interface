@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 import Header from './components/Header';
@@ -12,21 +12,26 @@ import html2canvas from 'html2canvas';
 
 // Firebase Imports
 import { db } from './firebase';
-import { doc, onSnapshot, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
+import { doc, onSnapshot, updateDoc, arrayUnion } from "firebase/firestore";
 
-type AppState = 'SELECTION' | 'ACTIVE';
+type AppState = 'AUTH' | 'ACTIVE';
+
+const MURRAY_PROTOCOL_KEY = "MURRAY_LEGACY_2026"; // Hardcoded for this client
+const MURRAY_PASSWORD = "FAMILY_STRENGTH"; // Example password
 
 function App() {
-  const [appState, setAppState] = useState<AppState>('SELECTION');
-  const [inputKey, setInputKey] = useState('');
+  const [appState, setAppState] = useState<AppState>('AUTH');
+  const [passwordInput, setPasswordPasswordInput] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
-  
+  const [authError, setAuthError] = useState('');
+
   const [memoryTree, setMemoryTree] = useState<MemoryTree>({
+    protocolKey: MURRAY_PROTOCOL_KEY,
     familyName: 'The Murrays',
     people: [],
     memories: [],
   });
-  
+
   const [showAddMemoryForm, setShowAddMemoryForm] = useState(false);
   const [showAddPersonForm, setShowAddPersonForm] = useState(false);
   const [editingPersonId, setEditingPersonId] = useState<string | null>(null);
@@ -34,13 +39,12 @@ function App() {
 
   // --- REAL-TIME SYNC ---
   useEffect(() => {
-    if (appState === 'ACTIVE' && memoryTree.protocolKey) {
+    if (appState === 'ACTIVE') {
       setIsSyncing(true);
-      const unsub = onSnapshot(doc(db, "trees", memoryTree.protocolKey), (doc) => {
+      const unsub = onSnapshot(doc(db, "trees", MURRAY_PROTOCOL_KEY), (doc) => {
         if (doc.exists()) {
           const data = doc.data() as MemoryTree;
-          // Convert Firestore timestamps back to Dates
-          const processedMemories = data.memories.map(m => ({
+          const processedMemories = (data.memories || []).map(m => ({
             ...m,
             timestamp: (m.timestamp as any).toDate ? (m.timestamp as any).toDate() : new Date(m.timestamp)
           }));
@@ -50,117 +54,111 @@ function App() {
       });
       return () => unsub();
     }
-  }, [appState, memoryTree.protocolKey]);
+  }, [appState]);
 
-  const handleStartNewTree = async () => {
-    const newKey = Math.floor(100000 + Math.random() * 900000).toString();
-    const newTree: MemoryTree = {
-      protocolKey: newKey,
-      familyName: 'The Murrays',
-      people: [],
-      memories: [],
-    };
-
-    try {
-      await setDoc(doc(db, "trees", newKey), newTree);
-      setMemoryTree(newTree);
+  const handleMurrayAuth = () => {
+    if (passwordInput === MURRAY_PASSWORD) {
       setAppState('ACTIVE');
-    } catch (e) {
-      console.error("Error creating tree:", e);
-      alert("Failed to connect to database. Check your Firebase config.");
+    } else {
+      setAuthError('Incorrect password. Access restricted to the Murray Family.');
     }
   };
 
-  const handleLoadByKey = () => {
-    if (inputKey.length < 6) return;
-    // We just set the key and appState; the onSnapshot useEffect handles the fetching
-    setMemoryTree(prev => ({ ...prev, protocolKey: inputKey }));
-    setAppState('ACTIVE');
-  };
-
-  // --- MEMBER MANAGEMENT (Write to Firestore) ---
-
   const handleSavePerson = async (person: Person) => {
-    if (!memoryTree.protocolKey) return;
-    
-    const treeRef = doc(db, "trees", memoryTree.protocolKey);
+    const treeRef = doc(db, "trees", MURRAY_PROTOCOL_KEY);
     let updatedPeople;
-
     if (editingPersonId) {
       updatedPeople = memoryTree.people.map(p => p.id === editingPersonId ? person : p);
     } else {
       updatedPeople = [...memoryTree.people, person];
     }
-
     await updateDoc(treeRef, { people: updatedPeople });
     setEditingPersonId(null);
     setShowAddPersonForm(false);
   };
 
   const handleDeletePerson = async (personId: string) => {
-    const hasMemories = memoryTree.memories.some(m => m.tags.personIds.includes(personId));
-    if (hasMemories) {
-      alert("Cannot remove this person because they have attached memories.");
-      return;
-    }
-
     if (window.confirm("Remove this family member?")) {
-      const treeRef = doc(db, "trees", memoryTree.protocolKey!);
+      const treeRef = doc(db, "trees", MURRAY_PROTOCOL_KEY);
       await updateDoc(treeRef, {
-        people: memoryTree.people.filter(p => p.id !== personId)
+        people: memoryTree.people.filter(p => p.id !== personId),
+        memories: memoryTree.memories.filter(m => !m.tags.personIds.includes(personId))
       });
       setSelectedEntityId(null);
     }
   };
 
-  // --- MEMORY MANAGEMENT (Write to Firestore) ---
-
   const handleAddMemory = async (newMemory: Memory) => {
-    if (!memoryTree.protocolKey) return;
-    const treeRef = doc(db, "trees", memoryTree.protocolKey);
+    const treeRef = doc(db, "trees", MURRAY_PROTOCOL_KEY);
     await updateDoc(treeRef, {
       memories: arrayUnion(newMemory)
     });
   };
 
-  // Filter memories
-  const filteredMemories = selectedEntityId 
+  const filteredMemories = selectedEntityId
     ? memoryTree.memories.filter(m => m.tags.personIds.includes(selectedEntityId))
-    : memoryTree.memories.filter(m => m.tags.isFamilyMemory); 
+    : memoryTree.memories.filter(m => m.tags.isFamilyMemory);
 
   const handleExportClick = async () => {
     const treeElement = document.getElementById('tree-container');
-    if (!treeElement) return;
-    const canvas = await html2canvas(treeElement, { backgroundColor: '#ffffff', scale: 2 });
-    const imgData = canvas.toDataURL('image/png');
+    const archiveElement = document.getElementById('archive-container');
+    if (!treeElement || !archiveElement) return;
+
     const pdf = new jsPDF('p', 'mm', 'a4');
-    pdf.text("Family Memory Archive", 105, 20, { align: 'center' });
-    pdf.addImage(imgData, 'PNG', 10, 30, 190, 0);
-    pdf.save(`Family_History_${new Date().getFullYear()}.pdf`);
+    
+    // Page 1: Family Tree Cover
+    const canvasTree = await html2canvas(treeElement, { backgroundColor: '#ffffff', scale: 2 });
+    pdf.setFont("serif", "bold");
+    pdf.setFontSize(24);
+    pdf.text("The Murray Family Legacy", 105, 30, { align: 'center' });
+    pdf.addImage(canvasTree.toDataURL('image/png'), 'PNG', 10, 50, 190, 0);
+    
+    // Pages 2+: Memories
+    for (let i = 0; i < filteredMemories.length; i++) {
+        pdf.addPage();
+        const mem = filteredMemories[i];
+        pdf.setFontSize(18);
+        pdf.text(mem.location || "Family Memory", 20, 20);
+        pdf.setFontSize(12);
+        pdf.text(new Date(mem.timestamp).toLocaleDateString(), 20, 30);
+        
+        if (mem.content.includes('|DELIM|')) {
+            const [text, img] = mem.content.split('|DELIM|');
+            pdf.addImage(img, 'JPEG', 20, 40, 170, 0);
+            pdf.setFont("serif", "normal");
+            pdf.text(text, 20, 200, { maxWidth: 170 });
+        } else {
+            pdf.text(mem.content, 20, 40, { maxWidth: 170 });
+        }
+    }
+
+    pdf.save(The_Murray_Family_Book_.pdf);
   };
 
-  if (appState === 'SELECTION') {
+  if (appState === 'AUTH') {
     return (
-      <div className="App container-fluid p-0">
-        <div className="row g-0" style={{ minHeight: '100vh' }}>
-          <div className="col-lg-6 d-none d-lg-flex bg-primary flex-column justify-content-center align-items-center text-white p-5" 
-               style={{ 
-                 backgroundImage: 'linear-gradient(rgba(85, 107, 47, 0.8), rgba(85, 107, 47, 0.9)), url("https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=1000&q=80")', 
-                 backgroundSize: 'cover',
-               }}>
-            <h1 className="display-3 fw-bold mb-4 text-white">The Murrays</h1>
-            <p className="lead opacity-75">Your Living Family Legacy</p>
+      <div className="App container-fluid p-0 bg-dark text-white">
+        <div className="row g-0 vh-100">
+          <div className="col-lg-6 d-flex flex-column justify-content-center align-items-center p-5 text-center" 
+               style={{ background: 'linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url("https://images.unsplash.com/photo-1464692805480-a69dfaaf2428?auto=format&fit=crop&w=1000&q=80")', backgroundSize: 'cover' }}>
+            <h1 className="display-2 fw-bold">YUKORA</h1>
+            <p className="lead">Memory Store Interface</p>
           </div>
-
-          <div className="col-lg-6 d-flex flex-column justify-content-center align-items-center bg-white p-4">
-            <div className="p-5 text-center" style={{ maxWidth: '480px' }}>
-              <h2 className="fw-bold mb-4">Welcome Home</h2>
-              <div className="d-grid gap-3">
-                <button className="btn btn-primary btn-lg py-3" onClick={handleStartNewTree}>Start New Tree</button>
-                <div className="input-group input-group-lg mb-3">
-                  <input type="number" className="form-control" placeholder="Enter Key" value={inputKey} onChange={(e) => setInputKey(e.target.value)}/>
-                  <button className="btn btn-secondary px-4" onClick={handleLoadByKey}>Load</button>
-                </div>
+          <div className="col-lg-6 d-flex flex-column justify-content-center align-items-center bg-white text-dark p-5">
+            <div style={{ maxWidth: '400px' }} className="text-center">
+              <h2 className="fw-bold mb-4">Are you a Murray?</h2>
+              <p className="text-muted mb-4">This interface is currently reserved for the Murray family lineage.</p>
+              <input 
+                type="password" 
+                className="form-control form-control-lg mb-3 text-center" 
+                placeholder="Family Password" 
+                value={passwordInput}
+                onChange={e => setPasswordPasswordInput(e.target.value)}
+              />
+              <button className="btn btn-primary btn-lg w-100 mb-3" onClick={handleMurrayAuth}>Enter Archive</button>
+              {authError && <div className="text-danger small">{authError}</div>}
+              <div className="mt-5 pt-5 border-top">
+                <p className="small text-muted">Interested in a Yukora Tree for your family? <br/> Contact us at yukora.org</p>
               </div>
             </div>
           </div>
@@ -170,63 +168,47 @@ function App() {
   }
 
   return (
-    <div className="App">
-      <Header 
+    <div className="App bg-light min-vh-100">
+      <Header
         onAddMemoryClick={() => setShowAddMemoryForm(true)}
         onAddPersonClick={() => { setEditingPersonId(null); setShowAddPersonForm(true); }}
         onExportClick={handleExportClick}
       />
-      
-      {isSyncing && (
-        <div className="bg-success text-white text-center small py-1" style={{ opacity: 0.8 }}>
-          Syncing with Cloud...
-        </div>
-      )}
 
-      <main className="container mt-4">
-        {showAddPersonForm && (
-          <AddPersonForm 
-            personToEdit={editingPersonId ? memoryTree.people.find(p => p.id === editingPersonId) : null}
-            onSave={handleSavePerson}
-            onCancel={() => { setShowAddPersonForm(false); setEditingPersonId(null); }}
-          />
-        )}
-
-        {showAddMemoryForm && (
-          <AddMemoryForm 
-            people={memoryTree.people}
-            onAddMemory={handleAddMemory}
-            onAddPerson={() => {}} // Legacy prop
-            onCancel={() => setShowAddMemoryForm(false)}
-          />
-        )}
-
-        <div id="tree-container" className="mb-5">
-           {memoryTree.people.length === 0 ? (
-             <div className="text-center p-5 bg-white border border-dashed rounded text-muted">
-               <h3>Your Family Tree is Empty</h3>
-               <p>Click "Add Member" above to register the first family member.</p>
-             </div>
-           ) : (
-             <TreeDisplay tree={memoryTree} onSelectPerson={setSelectedEntityId} />
-           )}
+      <main className="container py-5">
+        <div id="tree-container" className="mb-5 p-4 bg-white shadow-sm rounded-xl">
+           <TreeDisplay tree={memoryTree} onSelectPerson={setSelectedEntityId} />
         </div>
 
-        <div className="text-center mb-4 animate-fade-in">
-          <h2 style={{ fontFamily: 'serif', color: '#556b2f' }}>
-            {selectedEntityId 
-              ? memoryTree.people.find(p => p.id === selectedEntityId)?.name + "'s Artifacts"
-              : "Family Bank: " + memoryTree.familyName}
-          </h2>
-          {selectedEntityId && (
-            <div className="d-flex justify-content-center gap-2 mt-2">
-               <button className="btn btn-sm btn-outline-secondary" onClick={() => { setEditingPersonId(selectedEntityId); setShowAddPersonForm(true); }}>Edit Member</button>
-               <button className="btn btn-sm btn-outline-danger" onClick={() => handleDeletePerson(selectedEntityId)}>Remove Member</button>
+        <div id="archive-container">
+            <div className="text-center mb-5">
+              <h2 className="display-5" style={{ fontFamily: 'serif', color: '#2d3436' }}>
+                {selectedEntityId
+                  ? memoryTree.people.find(p => p.id === selectedEntityId)?.name + "'s History"
+                  : "The Murray Family Archive"}
+              </h2>
+              <hr className="w-25 mx-auto" />
             </div>
-          )}
+
+            {showAddPersonForm && (
+              <AddPersonForm
+                personToEdit={editingPersonId ? memoryTree.people.find(p => p.id === editingPersonId) : null}
+                onSave={handleSavePerson}
+                onCancel={() => { setShowAddPersonForm(false); setEditingPersonId(null); }}
+              />
+            )}
+
+            {showAddMemoryForm && (
+              <AddMemoryForm
+                people={memoryTree.people}
+                onAddMemory={handleAddMemory}
+                onAddPerson={() => {}} 
+                onCancel={() => setShowAddMemoryForm(false)}
+              />
+            )}
+
+            <MemoryList memories={filteredMemories} people={memoryTree.people} />
         </div>
-        
-        <MemoryList memories={filteredMemories} people={memoryTree.people} />
       </main>
     </div>
   )
