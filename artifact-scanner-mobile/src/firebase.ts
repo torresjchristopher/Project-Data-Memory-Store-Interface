@@ -1,15 +1,16 @@
-import { initializeApp } from "firebase/app";
+﻿import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-// REPLACE THESE WITH YOUR ACTUAL FIREBASE PROJECT KEYS
+// Yukora Sovereign Infrastructure - Shared Config
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "schnitzelbank-org.firebaseapp.com",
-  projectId: "schnitzelbank-org",
-  storageBucket: "schnitzelbank-org.firebasestorage.app",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyB1kn7TwyUeQRLErHfM2KSD8RPi7tJarH8",
+  authDomain: "schnitzelbank-a.firebaseapp.com",
+  projectId: "schnitzelbank-a",
+  storageBucket: "schnitzelbank-a.firebasestorage.app",
+  messagingSenderId: "465517915092",
+  appId: "1:465517915092:web:66332a394ee8655eb9c441",
+  measurementId: "G-TNRYLNLEYT"
 };
 
 const app = initializeApp(firebaseConfig);
