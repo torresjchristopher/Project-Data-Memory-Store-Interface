@@ -8,6 +8,8 @@ import MemoryList from './components/MemoryList';
 import TimelineView from './components/TimelineView';
 import ArtifactDeepView from './components/ArtifactDeepView';
 import { ArchiveService } from './services/ArchiveService';
+import { PersistenceService, type SyncStatus } from './services/PersistenceService';
+import SyncStatusIndicator from './components/SyncStatusIndicator';
 import type { MemoryTree, Memory, Person } from './types';
 // Firebase Imports
 import { db } from './firebase';
@@ -33,7 +35,14 @@ function App() {
   
   const [passwordInput, setPasswordInput] = useState('');
   const [authError, setAuthError] = useState('');
-  const [syncStatus, setSyncStatus] = useState('Initiating...');
+  const [, setSyncStatus] = useState('Initiating...');
+  const [, setSyncStatusObj] = useState<SyncStatus>({
+    isOnline: navigator.onLine,
+    lastSyncTime: null,
+    pendingOperations: 0,
+    syncInProgress: false,
+    status: 'IDLE',
+  });
 
   const [selectedPersonId, setSelectedPersonId] = useState<string>('');
   const [selectedFamilyGroup, setSelectedFamilyGroup] = useState<string>('');
@@ -54,6 +63,57 @@ function App() {
     memoryTree.people.forEach(p => { if (p.familyGroup) groups.add(p.familyGroup); });
     return Array.from(groups);
   }, [memoryTree.people]);
+
+  // --- OFFLINE PERSISTENCE INITIALIZATION ---
+  useEffect(() => {
+    const persistence = PersistenceService.getInstance();
+    
+    // Listen to sync status changes
+    const unsubscribeSyncStatus = persistence.onSyncStatusChange((status) => {
+      setSyncStatusObj(status);
+      // Update user-friendly message
+      if (!status.isOnline) {
+        setSyncStatus('Offline Mode');
+      } else if (status.status === 'SYNCING') {
+        setSyncStatus('Syncing...');
+      } else if (status.pendingOperations > 0) {
+        setSyncStatus(`${status.pendingOperations} Pending`);
+      } else {
+        setSyncStatus('Vault Online');
+      }
+    });
+
+    // Load cached data on startup (before Firebase sync)
+    const loadCachedData = async () => {
+      try {
+        const [cachedPeople, cachedMemories, cachedBio] = await Promise.all([
+          persistence.loadPeople(MURRAY_PROTOCOL_KEY),
+          persistence.loadMemories(MURRAY_PROTOCOL_KEY),
+          persistence.loadFamilyBio(MURRAY_PROTOCOL_KEY),
+        ]);
+
+        if (cachedPeople.length > 0 || cachedMemories.length > 0) {
+          setMemoryTree(prev => ({
+            ...prev,
+            people: cachedPeople,
+            memories: cachedMemories,
+          }));
+          if (cachedBio) {
+            setFamilyBio(cachedBio);
+          }
+          setSyncStatus('Loaded from Cache');
+        }
+      } catch (e) {
+        console.error('Failed to load cached data:', e);
+      }
+    };
+
+    loadCachedData();
+
+    return () => {
+      unsubscribeSyncStatus();
+    };
+  }, []);
 
   // --- SECURE CONNECTION & REAL-TIME SYNC ---
   useEffect(() => {
@@ -122,7 +182,14 @@ function App() {
   const handleSavePerson = async (person: Person) => {
     try {
       setSyncStatus('Anchoring Person...');
+      const persistence = PersistenceService.getInstance();
+      
+      // Save to persistence (IndexedDB)
+      await persistence.savePerson(person, MURRAY_PROTOCOL_KEY);
+      
+      // Save to Firebase
       await ArchiveService.savePerson(person);
+      
       setShowAddPersonForm(false);
       setViewingPerson(null);
       setSyncStatus('Vault Online');
@@ -136,7 +203,14 @@ function App() {
   const handleSaveFamilyBio = async (bio: string) => {
     try {
       setSyncStatus('Anchoring Narrative...');
+      const persistence = PersistenceService.getInstance();
+      
+      // Save to persistence (IndexedDB)
+      await persistence.saveFamilyBio(bio, MURRAY_PROTOCOL_KEY);
+      
+      // Save to Firebase
       await ArchiveService.updateFamilyBio(bio);
+      
       setEditingFamilyBio(false);
       setSyncStatus('Vault Online');
     } catch (e) {
@@ -149,6 +223,14 @@ function App() {
   const handleAddMemories = async (newMemories: Memory[]) => {
     setSyncStatus('Archiving...');
     try {
+        const persistence = PersistenceService.getInstance();
+        
+        // Save to persistence (IndexedDB) first
+        for (const memory of newMemories) {
+          await persistence.saveMemory(memory, MURRAY_PROTOCOL_KEY);
+        }
+        
+        // Then save to Firebase
         await ArchiveService.depositBatch(newMemories, (msg) => setSyncStatus(msg));
         setSyncStatus('Vault Online');
     } catch (e) {
@@ -272,9 +354,8 @@ function App() {
         </nav>
 
         <div className="mt-auto border-top pt-4">
-            <div className="d-flex align-items-center gap-2 mb-4">
-                <div className={syncStatus === 'Vault Online' ? "bg-success rounded-circle" : "bg-warning rounded-circle"} style={{ width: '6px', height: '6px' }}></div>
-                <span className="small text-muted fw-bold text-uppercase tracking-widest" style={{ fontSize: '0.6rem' }}>{syncStatus}</span>
+            <div className="mb-4">
+              <SyncStatusIndicator compact />
             </div>
             <button className="btn btn-primary-modern w-100 mb-2" style={{ borderRadius: '8px' }} onClick={() => setShowAddMemoryForm(true)}>+ Deposit Artifact</button>
             <div className="d-flex gap-2">

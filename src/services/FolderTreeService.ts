@@ -402,7 +402,7 @@ class FolderTreeServiceImpl {
    * Flatten folder tree to array of files with paths
    */
   flattenToFiles(node: FolderNode, files: Array<{ path: string; content: string | Blob }> = []): Array<{ path: string; content: string | Blob }> {
-    if (node.type === 'file') {
+    if (node.type === 'file' && node.content !== undefined) {
       files.push({
         path: node.path,
         content: node.content,
