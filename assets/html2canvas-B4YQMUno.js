@@ -1,0 +1,1 @@
+import{t as e}from"./index-BAd2_Qjz.js";export default e();
