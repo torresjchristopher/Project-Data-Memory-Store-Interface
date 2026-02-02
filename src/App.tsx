@@ -3,6 +3,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles/DesignSystem.css';
 import './styles/Magazine.css';
 import './styles/Dashboard.css';
+import './styles/Fluid.css';
 import './App.css';
 import AddMemoryForm from './components/AddMemoryForm';
 import AddPersonForm from './components/AddPersonForm';

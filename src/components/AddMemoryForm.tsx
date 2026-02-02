@@ -8,24 +8,14 @@ interface AddMemoryFormProps {
   onCancel: () => void;
 }
 
-interface FilePayload {
-  data: string;
-  type: MemoryType;
-  name: string;
-}
-
 const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemories, onAddPerson, onCancel }) => {
-  const [isAddingNewPerson, setIsAddingNewPerson] = useState(false);
-
+  const [isAddingPerson, setIsAddingPerson] = useState(false);
   const [content, setContent] = useState('');
-  const [files, setFiles] = useState<FilePayload[]>([]);
-  const [location, setLocation] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-
   const [selectedPersonIds, setSelectedPersonIds] = useState<string[]>([]);
-
   const [newPersonName, setNewPersonName] = useState('');
   const [birthYear, setBirthYear] = useState('');
+  const [files, setFiles] = useState<Array<{ data: string; type: MemoryType; name: string }>>([]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = e.target.files;
@@ -50,200 +40,311 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemories, on
     }
   };
 
-  const togglePersonSelection = (id: string) => {
-    setSelectedPersonIds(prev => 
-      prev.includes(id) ? prev.filter(pId => pId !== id) : [...prev, id]
-    );
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (isAddingNewPerson) {
-      if (!newPersonName.trim() || !birthYear) return;
+    if (isAddingPerson) {
+      if (!newPersonName || !birthYear) return;
       onAddPerson({
         id: Math.random().toString(36).substr(2, 9),
-        name: newPersonName.trim(),
+        name: newPersonName,
         birthYear: parseInt(birthYear),
+        familyGroup: 'Family'
       });
-      setIsAddingNewPerson(false);
       setNewPersonName('');
       setBirthYear('');
-    } else {
-      if (files.length === 0 && !content.trim()) {
-        alert("Please provide either a story description OR upload at least one file.");
-        return;
-      }
+      setIsAddingPerson(false);
+      return;
+    }
 
-      const memories: Memory[] = [];
+    if (!content && files.length === 0) return;
+    if (selectedPersonIds.length === 0) return;
 
-      if (files.length > 0) {
-        // Create a memory for each file
-        files.forEach(file => {
-          memories.push({
-            id: Math.random().toString(36).substr(2, 9),
-            type: file.type,
-            content: content + "|DELIM|" + file.data,
-            location,
-            timestamp: new Date(date),
-            tags: {
-                isFamilyMemory: true,
-                personIds: selectedPersonIds
-            }
-          });
-        });
-      } else {
-        // Text-only memory
+    const memories: Memory[] = [];
+
+    if (files.length > 0) {
+      files.forEach(file => {
         memories.push({
           id: Math.random().toString(36).substr(2, 9),
-          type: 'text',
-          content: content,
-          location,
+          type: file.type,
+          content: content + '|DELIM|' + file.data,
+          location: '',
           timestamp: new Date(date),
           tags: {
-              isFamilyMemory: true,
-              personIds: selectedPersonIds
+            isFamilyMemory: true,
+            personIds: selectedPersonIds
           }
         });
-      }
-
-      onAddMemories(memories);
-      onCancel();
+      });
+    } else {
+      memories.push({
+        id: Math.random().toString(36).substr(2, 9),
+        type: 'text',
+        content,
+        location: '',
+        timestamp: new Date(date),
+        tags: {
+          isFamilyMemory: true,
+          personIds: selectedPersonIds
+        }
+      });
     }
+
+    onAddMemories(memories);
+    onCancel();
   };
 
-  const removeFile = (index: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== index));
+  const inputStyle = {
+    width: '100%',
+    padding: '12px 14px',
+    border: '1.5px solid var(--navy-lighter)',
+    borderRadius: '10px',
+    fontSize: '16px',
+    fontFamily: 'var(--font-sans)',
+    transition: 'all 200ms ease-out'
+  };
+
+  const labelStyle = {
+    display: 'block',
+    marginBottom: '8px',
+    fontSize: '12px',
+    fontWeight: '700',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.5px',
+    color: 'var(--navy-primary)'
   };
 
   return (
-    <div className="card-modern shadow-2xl animate-slide-up mx-auto" style={{ maxWidth: '900px', border: 'none' }}>
-      <div className="card-header bg-white border-bottom p-10">
-        <div className="d-flex justify-content-between align-items-center">
-          <h4 className="h3 mb-0" style={{ fontFamily: 'var(--font-serif)' }}>
-            {isAddingNewPerson ? 'Registry Enrollment' : 'Archival Deposit'}
-          </h4>
-          <button
-            type="button" 
-            className="btn btn-link text-decoration-none p-0 small fw-bold text-uppercase tracking-widest text-muted"
-            style={{ fontSize: '0.65rem' }}
-            onClick={() => setIsAddingNewPerson(!isAddingNewPerson)}
-          >
-            {isAddingNewPerson ? 'Return to Deposit' : 'Register New Member'}
-          </button>
+    <div style={{ width: '100%', maxWidth: '500px', margin: '0 auto' }}>
+      <div style={{
+        background: 'white',
+        borderRadius: '16px',
+        border: '1px solid rgba(30, 27, 75, 0.08)',
+        overflow: 'hidden',
+        boxShadow: '0 20px 25px -5px rgba(30, 27, 75, 0.1)'
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: '24px',
+          borderBottom: '1px solid var(--navy-10)',
+          background: 'linear-gradient(135deg, var(--navy-primary), var(--navy-light))',
+          color: 'white'
+        }}>
+          <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '700', fontFamily: 'var(--font-serif)' }}>
+            {isAddingPerson ? 'Add Family Member' : 'Add Memory'}
+          </h3>
         </div>
-      </div>
 
-      <div className="card-body p-10">
-        <form onSubmit={handleSubmit}>
-          {isAddingNewPerson ? (
-            <div className="animate-slide-up">
-              <div className="mb-8">
-                <label className="small fw-bold text-muted mb-2 d-block text-uppercase tracking-widest" style={{ fontSize: '0.6rem' }}>Legal Full Name</label>
-                <input
-                  type="text"
-                  className="form-control-modern w-100"
-                  placeholder="e.g. Mary Elizabeth Murray"
-                  value={newPersonName}
-                  onChange={(e) => setNewPersonName(e.target.value)}
-                  required
-                />
+        {/* Body */}
+        <div style={{ padding: '32px' }}>
+          <form onSubmit={handleSubmit}>
+            {isAddingPerson ? (
+              <div>
+                <div style={{ marginBottom: '24px' }}>
+                  <label style={labelStyle}>Name</label>
+                  <input
+                    type="text"
+                    placeholder="Full name"
+                    value={newPersonName}
+                    onChange={(e) => setNewPersonName(e.target.value)}
+                    required
+                    style={inputStyle}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '24px' }}>
+                  <label style={labelStyle}>Birth Year</label>
+                  <input
+                    type="number"
+                    placeholder="1950"
+                    value={birthYear}
+                    onChange={(e) => setBirthYear(e.target.value)}
+                    required
+                    style={inputStyle}
+                  />
+                </div>
               </div>
-              <div className="mb-8">
-                <label className="small fw-bold text-muted mb-2 d-block text-uppercase tracking-widest" style={{ fontSize: '0.6rem' }}>Year of Birth</label>
-                <input
-                  type="number"
-                  className="form-control-modern w-100"
-                  placeholder="e.g. 1950"
-                  value={birthYear} 
-                  onChange={(e) => setBirthYear(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="animate-slide-up">
-              <div className="mb-10 p-6 border-bottom">
-                <label className="small fw-bold text-muted mb-4 d-block text-center text-uppercase tracking-widest" style={{ fontSize: '0.6rem' }}>Lineage Attribution</label>
-                <div className="d-flex flex-wrap gap-3 justify-content-center">
+            ) : (
+              <div>
+                {/* Person */}
+                <div style={{ marginBottom: '24px' }}>
+                  <label style={labelStyle}>Who</label>
+                  <select
+                    multiple
+                    value={selectedPersonIds}
+                    onChange={(e) => setSelectedPersonIds(Array.from(e.target.selectedOptions, option => option.value))}
+                    style={{...inputStyle, minHeight: '120px'}}
+                  >
                     {people.map(p => (
-                        <button 
-                            key={p.id}
-                            type="button"
-                            onClick={() => togglePersonSelection(p.id)}
-                            className={selectedPersonIds.includes(p.id) ? "badge-modern bg-dark text-white" : "badge-modern bg-white text-muted border-muted"}
-                        >
-                            {p.name}
-                        </button>
+                      <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
+                  </select>
                 </div>
-              </div>
 
-              <div className="row g-5">
-                  <div className="col-md-7 mb-3">
-                      <label className="small fw-bold text-muted mb-3 d-block text-uppercase tracking-widest" style={{ fontSize: '0.6rem' }}>Historical Narrative</label>
-                      <textarea
-                        className="form-control-modern w-100"
-                        rows={6}
-                        style={{ fontSize: '1.4rem', fontStyle: 'italic' }}
-                        placeholder="Detail the significance of this record..."
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)} 
-                      />
-                  </div>
-                  <div className="col-md-5 mb-3">
-                      <label className="small fw-bold text-muted mb-3 d-block text-center text-uppercase tracking-widest" style={{ fontSize: '0.6rem' }}>Physical Evidence</label>
-                      <div className="deposit-zone h-100 d-flex flex-column justify-content-center align-items-center position-relative">
-                        <input
-                            type="file"
-                            id="fileUpload"
-                            className="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer"
-                            onChange={handleFileChange}
-                            accept="image/*,audio/*,video/*,.pdf"
-                            multiple
-                        />
-                        <div className="text-center">
-                            <div className="small fw-bold text-uppercase tracking-widest" style={{ fontSize: '0.65rem' }}>Select Files</div>
-                            <div className="small text-muted mt-2">Digital Archiving Active</div>
+                {/* Date */}
+                <div style={{ marginBottom: '24px' }}>
+                  <label style={labelStyle}>When</label>
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    style={inputStyle}
+                  />
+                </div>
+
+                {/* Memory */}
+                <div style={{ marginBottom: '24px' }}>
+                  <label style={labelStyle}>Memory</label>
+                  <textarea
+                    placeholder="Write what you remember..."
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    style={{...inputStyle, minHeight: '100px', resize: 'vertical'}}
+                  />
+                </div>
+
+                {/* Files */}
+                <div style={{ marginBottom: '24px' }}>
+                  <label style={labelStyle}>Add Files (Optional)</label>
+                  <input
+                    type="file"
+                    multiple
+                    onChange={handleFileChange}
+                    style={{...inputStyle, borderStyle: 'dashed', cursor: 'pointer'}}
+                  />
+                  {files.length > 0 && (
+                    <div style={{ marginTop: '12px' }}>
+                      {files.map((file, i) => (
+                        <div key={i} style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '8px 12px',
+                          background: 'var(--navy-10)',
+                          borderRadius: '8px',
+                          marginBottom: '8px',
+                          fontSize: '14px',
+                          color: 'var(--navy-primary)'
+                        }}>
+                          <span>{file.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeFile(i)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#ef4444',
+                              cursor: 'pointer',
+                              fontSize: '16px',
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            ×
+                          </button>
                         </div>
-                      </div>
-                  </div>
-              </div>
-
-              {files.length > 0 && (
-                <div className="mt-8 p-4 bg-light">
-                    <label className="small fw-bold text-muted mb-3 d-block text-uppercase tracking-widest" style={{ fontSize: '0.6rem' }}>Staged Records ({files.length})</label>
-                    <div className="d-flex flex-wrap gap-2">
-                        {files.map((file, idx) => (
-                            <div key={idx} className="badge-modern bg-white border d-flex align-items-center gap-3 py-2 px-4">
-                                <span className="text-truncate" style={{ maxWidth: '200px' }}>{file.name}</span>
-                                <button type="button" className="btn-close small" style={{ fontSize: '0.4rem' }} onClick={() => removeFile(idx)}></button>
-                            </div>
-                        ))}
+                      ))}
                     </div>
-                </div>
-              )}
-
-              <div className="row mt-10">
-                <div className="col-md-6 mb-3">
-                  <label className="small fw-bold text-muted mb-2 d-block text-uppercase tracking-widest" style={{ fontSize: '0.6rem' }}>Geographic Provenance</label>
-                  <input type="text" className="form-control-modern w-100" placeholder="LOCATION" value={location} onChange={(e) => setLocation(e.target.value)} />   
-                </div>
-                <div className="col-md-6 mb-3">
-                  <label className="small fw-bold text-muted mb-2 d-block text-uppercase tracking-widest" style={{ fontSize: '0.6rem' }}>Temporal Marker</label>
-                  <input type="date" className="form-control-modern w-100" value={date} onChange={(e) => setDate(e.target.value)} required />
+                  )}
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <div className="d-flex justify-content-end gap-5 pt-10 mt-10 border-top">
-            <button type="button" className="btn btn-link text-muted text-decoration-none text-uppercase tracking-widest fw-bold" style={{ fontSize: '0.65rem' }} onClick={onCancel}>Abort</button>
-            <button type="submit" className="btn btn-primary-modern px-10">
-              {isAddingNewPerson ? 'Enroll' : `Commit ${files.length || 1} Record(s)`}
+            {/* Buttons */}
+            <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
+              <button
+                type="button"
+                onClick={onCancel}
+                style={{
+                  flex: 1,
+                  padding: '12px 24px',
+                  border: '1.5px solid var(--navy-lighter)',
+                  borderRadius: '10px',
+                  background: 'transparent',
+                  color: 'var(--navy-primary)',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  cursor: 'pointer',
+                  transition: 'all 200ms cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
+                onMouseEnter={(e) => {
+                  (e.target as HTMLButtonElement).style.background = 'var(--navy-10)';
+                  (e.target as HTMLButtonElement).style.borderColor = 'var(--navy-light)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.target as HTMLButtonElement).style.background = 'transparent';
+                  (e.target as HTMLButtonElement).style.borderColor = 'var(--navy-lighter)';
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                style={{
+                  flex: 1,
+                  padding: '12px 24px',
+                  border: 'none',
+                  borderRadius: '10px',
+                  background: 'var(--navy-primary)',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 6px rgba(30, 27, 75, 0.1)',
+                  transition: 'all 200ms cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
+                onMouseEnter={(e) => {
+                  (e.target as HTMLButtonElement).style.background = 'var(--navy-light)';
+                  (e.target as HTMLButtonElement).style.transform = 'translateY(-2px)';
+                  (e.target as HTMLButtonElement).style.boxShadow = '0 12px 16px rgba(30, 27, 75, 0.15)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.target as HTMLButtonElement).style.background = 'var(--navy-primary)';
+                  (e.target as HTMLButtonElement).style.transform = 'translateY(0)';
+                  (e.target as HTMLButtonElement).style.boxShadow = '0 4px 6px rgba(30, 27, 75, 0.1)';
+                }}
+              >
+                Save
+              </button>
+            </div>
+
+            {/* Toggle */}
+            <button
+              type="button"
+              onClick={() => setIsAddingPerson(!isAddingPerson)}
+              style={{
+                width: '100%',
+                marginTop: '16px',
+                padding: '12px',
+                background: 'var(--navy-10)',
+                border: 'none',
+                borderRadius: '10px',
+                color: 'var(--navy-primary)',
+                fontSize: '12px',
+                fontWeight: '600',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                cursor: 'pointer',
+                transition: 'all 200ms ease-out'
+              }}
+              onMouseEnter={(e) => {
+                (e.target as HTMLButtonElement).style.background = 'var(--navy-20)';
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLButtonElement).style.background = 'var(--navy-10)';
+              }}
+            >
+              {isAddingPerson ? '← Back to Memory' : 'Add New Person →'}
             </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );

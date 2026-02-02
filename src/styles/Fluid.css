@@ -1,0 +1,477 @@
+/* ============================================================================
+   FLUID UI SYSTEM
+   Modern, smooth, delightful interactions inspired by premium products
+   Think: Figma, Linear, Apple - smooth, intentional, responsive
+   ============================================================================ */
+
+/* --- SMOOTH TRANSITIONS & ANIMATIONS --- */
+* {
+  transition: background-color 150ms ease-out, 
+              color 150ms ease-out,
+              border-color 150ms ease-out,
+              box-shadow 150ms ease-out,
+              opacity 150ms ease-out;
+}
+
+/* Page transitions */
+.animate-in {
+  animation: fadeInUp 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-out {
+  animation: fadeOutDown 200ms cubic-bezier(0.7, 0, 0.84, 0) forwards;
+}
+
+@keyframes fadeOutDown {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+/* --- BACKDROP --- */
+.lightbox-overlay {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background: rgba(15, 23, 42, 0.4) !important;
+  animation: backdropFadeIn 300ms ease-out;
+}
+
+@keyframes backdropFadeIn {
+  from {
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+    background: rgba(15, 23, 42, 0);
+  }
+  to {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    background: rgba(15, 23, 42, 0.4);
+  }
+}
+
+/* --- MODAL/POPUP IMPROVEMENTS --- */
+.lightbox-overlay > div {
+  animation: popupSlideIn 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 20px 25px -5px rgba(30, 27, 75, 0.1),
+    0 0 1px rgba(30, 27, 75, 0.1);
+}
+
+@keyframes popupSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* --- FORM STYLING (FLUID) --- */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--navy-primary);
+  transition: color 200ms ease-out;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="date"],
+input[type="number"],
+textarea,
+select {
+  width: 100%;
+  padding: 12px 14px;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  border: 1.5px solid var(--navy-lighter);
+  border-radius: 10px;
+  background: white;
+  color: var(--text-primary);
+  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  line-height: 1.5;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-light);
+  transition: color 200ms ease-out;
+}
+
+/* Focus state - smooth glow */
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--navy-primary);
+  box-shadow: 
+    0 0 0 3px rgba(30, 27, 75, 0.08),
+    inset 0 0 0 1px rgba(30, 27, 75, 0.1);
+  background: linear-gradient(white, white);
+}
+
+textarea {
+  font-family: var(--font-sans);
+  resize: vertical;
+  min-height: 120px;
+}
+
+/* --- BUTTONS (SMOOTH & DELIGHTFUL) --- */
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 500ms, height 500ms;
+  pointer-events: none;
+}
+
+.btn:active::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* Primary button */
+.btn-primary {
+  background: var(--navy-primary);
+  color: white;
+  box-shadow: 
+    0 4px 6px rgba(30, 27, 75, 0.1),
+    0 0 0 0 rgba(30, 27, 75, 0);
+}
+
+.btn-primary:hover {
+  background: var(--navy-light);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 12px 16px rgba(30, 27, 75, 0.15),
+    0 0 0 0 rgba(30, 27, 75, 0);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 
+    0 4px 6px rgba(30, 27, 75, 0.1),
+    0 0 0 0 rgba(30, 27, 75, 0);
+}
+
+/* Secondary button */
+.btn-secondary {
+  background: transparent;
+  color: var(--navy-primary);
+  border: 1.5px solid var(--navy-lighter);
+  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-secondary:hover {
+  background: var(--navy-10);
+  border-color: var(--navy-light);
+  transform: translateY(-2px);
+}
+
+.btn-secondary:active {
+  background: var(--navy-20);
+  border-color: var(--navy-primary);
+}
+
+/* Danger/Red button */
+.btn-danger {
+  background: #ef4444;
+  color: white;
+  box-shadow: 0 4px 6px rgba(239, 68, 68, 0.15);
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 16px rgba(239, 68, 68, 0.2);
+}
+
+/* --- LOADING STATES --- */
+.btn:disabled,
+.btn.loading {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.btn.loading::after {
+  content: '';
+  width: 14px;
+  height: 14px;
+  margin-left: 6px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 600ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* --- FORM SUBMISSION FEEDBACK --- */
+.success-feedback {
+  animation: slideInSuccess 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  color: #10b981;
+  font-size: 0.875rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@keyframes slideInSuccess {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.error-feedback {
+  animation: slideInError 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  color: #ef4444;
+  font-size: 0.875rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@keyframes slideInError {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* --- DROPDOWN / SELECT IMPROVEMENTS --- */
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%231e1b4b' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+  background-color: white;
+}
+
+select:hover {
+  border-color: var(--navy-light);
+  background-color: var(--navy-10);
+}
+
+/* --- CHECKBOX & RADIO (IF NEEDED) --- */
+input[type="checkbox"],
+input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--navy-lighter);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 200ms ease-out;
+  position: relative;
+}
+
+input[type="checkbox"]:checked,
+input[type="radio"]:checked {
+  background: var(--navy-primary);
+  border-color: var(--navy-primary);
+}
+
+input[type="checkbox"]:checked::after {
+  content: '✓';
+  position: absolute;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* --- SMOOTH VIEW TRANSITIONS --- */
+.view-exit {
+  animation: fadeOutDown 200ms cubic-bezier(0.7, 0, 0.84, 0) forwards;
+}
+
+.view-enter {
+  animation: fadeInUp 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* --- SMOOTH NAVIGATION --- */
+nav a,
+.nav-item {
+  position: relative;
+  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+nav a::after,
+.nav-item::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--gold-accent);
+  transition: width 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+nav a:hover::after,
+.nav-item:hover::after {
+  width: 100%;
+}
+
+/* --- SMOOTH SCROLLING --- */
+html {
+  scroll-behavior: smooth;
+}
+
+/* --- FLUID SPACING UTILITIES --- */
+.space-in {
+  animation: spaceIn 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes spaceIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* --- TEXT INPUT LABELS (FLOATING STYLE) --- */
+.form-floating {
+  position: relative;
+}
+
+.form-floating input,
+.form-floating textarea {
+  padding-top: 24px;
+  padding-bottom: 8px;
+}
+
+.form-floating label {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-light);
+  pointer-events: none;
+  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.form-floating input:focus + label,
+.form-floating textarea:focus + label,
+.form-floating input:not(:placeholder-shown) + label,
+.form-floating textarea:not(:placeholder-shown) + label {
+  color: var(--navy-primary);
+}
+
+/* --- CARD HOVER EFFECTS --- */
+.card,
+[class*="card"] {
+  transition: all 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card:hover,
+[class*="card"]:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(30, 27, 75, 0.1);
+}
+
+/* --- RESPONSIVE FOR MOBILE --- */
+@media (max-width: 768px) {
+  .btn {
+    padding: 0.875rem 1.25rem;
+    font-size: 0.8125rem;
+    border-radius: 8px;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="date"],
+  input[type="number"],
+  textarea,
+  select {
+    border-radius: 8px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  .lightbox-overlay > div {
+    border-radius: 12px;
+    max-width: 95vw;
+  }
+}

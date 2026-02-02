@@ -34,59 +34,149 @@ const AddPersonForm: React.FC<AddPersonFormProps> = ({ personToEdit, onSave, onC
     onSave(person);
   };
 
+  const inputStyle = {
+    width: '100%',
+    padding: '12px 14px',
+    border: '1.5px solid var(--navy-lighter)',
+    borderRadius: '10px',
+    fontSize: '16px',
+    fontFamily: 'var(--font-sans)',
+    transition: 'all 200ms ease-out'
+  };
+
+  const labelStyle = {
+    display: 'block' as const,
+    marginBottom: '8px',
+    fontSize: '12px',
+    fontWeight: '700',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.5px',
+    color: 'var(--navy-primary)'
+  };
+
   return (
-    <div className="card-modern shadow-2xl animate-slide-up" style={{ border: 'none' }}>
-      <div className="card-body p-10">
-        <h4 className="h3 mb-10" style={{ fontFamily: 'var(--font-serif)' }}>
-          {personToEdit ? 'Member Biography' : 'Enrollment'}
-        </h4>
-        
-        <form onSubmit={handleSubmit}>
-          <div className="row g-5">
-            <div className="col-md-8 mb-3">
-              <label className="small fw-bold text-muted mb-2 d-block text-uppercase tracking-widest" style={{ fontSize: '0.6rem' }}>Legal Full Name</label>
+    <div style={{ width: '100%', maxWidth: '500px', margin: '0 auto' }}>
+      <div style={{
+        background: 'white',
+        borderRadius: '16px',
+        border: '1px solid rgba(30, 27, 75, 0.08)',
+        overflow: 'hidden',
+        boxShadow: '0 20px 25px -5px rgba(30, 27, 75, 0.1)'
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: '24px',
+          borderBottom: '1px solid var(--navy-10)',
+          background: 'linear-gradient(135deg, var(--navy-primary), var(--navy-light))',
+          color: 'white'
+        }}>
+          <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '700', fontFamily: 'var(--font-serif)' }}>
+            {personToEdit ? 'Edit Member' : 'Add Member'}
+          </h3>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: '32px' }}>
+          <form onSubmit={handleSubmit}>
+            <div style={{ marginBottom: '24px' }}>
+              <label style={labelStyle}>Name</label>
               <input 
                 type="text" 
-                className="form-control-modern w-100" 
-                placeholder="e.g. Mary Elizabeth Murray"
+                placeholder="Full name"
                 value={name} 
                 onChange={(e) => setName(e.target.value)} 
                 autoFocus
                 required 
+                style={inputStyle}
               />
             </div>
-            <div className="col-md-4 mb-3">
-              <label className="small fw-bold text-muted mb-2 d-block text-uppercase tracking-widest" style={{ fontSize: '0.6rem' }}>Year of Birth</label>
+
+            <div style={{ marginBottom: '24px' }}>
+              <label style={labelStyle}>Birth Year</label>
               <input 
                 type="number" 
-                className="form-control-modern w-100" 
-                placeholder="YYYY"
+                placeholder="1950"
                 value={birthYear} 
                 onChange={(e) => setBirthYear(e.target.value)} 
                 required 
+                style={inputStyle}
               />
             </div>
-          </div>
 
-          <div className="mb-8 mt-5">
-              <label className="small fw-bold text-muted mb-3 d-block text-uppercase tracking-widest" style={{ fontSize: '0.6rem' }}>Biographical Record (Optional)</label>
+            <div style={{ marginBottom: '24px' }}>
+              <label style={labelStyle}>Bio (Optional)</label>
               <textarea 
-                className="form-control-modern w-100" 
+                placeholder="Tell their story..."
                 rows={5} 
-                style={{ fontSize: '1.2rem', fontStyle: 'italic' }}
-                placeholder="Optional: Detail the life path and significance of this member..."
                 value={bio} 
-                onChange={(e) => setBio(e.target.value)} 
+                onChange={(e) => setBio(e.target.value)}
+                style={{...inputStyle, minHeight: '120px', resize: 'vertical'}}
               />
-          </div>
+            </div>
 
-          <div className="d-flex justify-content-end gap-5 mt-10 pt-10 border-top">
-            <button type="button" className="btn btn-link text-muted text-decoration-none text-uppercase tracking-widest fw-bold" style={{ fontSize: '0.65rem' }} onClick={onCancel}>Abort</button>
-            <button type="submit" className="btn btn-primary-modern px-10">
-              {personToEdit ? 'Update Biography' : 'Execute Enrollment'}
-            </button>
-          </div>
-        </form>
+            {/* Buttons */}
+            <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
+              <button
+                type="button"
+                onClick={onCancel}
+                style={{
+                  flex: 1,
+                  padding: '12px 24px',
+                  border: '1.5px solid var(--navy-lighter)',
+                  borderRadius: '10px',
+                  background: 'transparent',
+                  color: 'var(--navy-primary)',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  cursor: 'pointer',
+                  transition: 'all 200ms cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
+                onMouseEnter={(e) => {
+                  (e.target as HTMLButtonElement).style.background = 'var(--navy-10)';
+                  (e.target as HTMLButtonElement).style.borderColor = 'var(--navy-light)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.target as HTMLButtonElement).style.background = 'transparent';
+                  (e.target as HTMLButtonElement).style.borderColor = 'var(--navy-lighter)';
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                style={{
+                  flex: 1,
+                  padding: '12px 24px',
+                  border: 'none',
+                  borderRadius: '10px',
+                  background: 'var(--navy-primary)',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 6px rgba(30, 27, 75, 0.1)',
+                  transition: 'all 200ms cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
+                onMouseEnter={(e) => {
+                  (e.target as HTMLButtonElement).style.background = 'var(--navy-light)';
+                  (e.target as HTMLButtonElement).style.transform = 'translateY(-2px)';
+                  (e.target as HTMLButtonElement).style.boxShadow = '0 12px 16px rgba(30, 27, 75, 0.15)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.target as HTMLButtonElement).style.background = 'var(--navy-primary)';
+                  (e.target as HTMLButtonElement).style.transform = 'translateY(0)';
+                  (e.target as HTMLButtonElement).style.boxShadow = '0 4px 6px rgba(30, 27, 75, 0.1)';
+                }}
+              >
+                {personToEdit ? 'Update' : 'Save'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
