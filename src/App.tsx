@@ -1,10 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles/DesignSystem.css';
 import './styles/Magazine.css';
 import './styles/Dashboard.css';
 import './App.css';
-import TreeDisplay from './components/TreeDisplay';
 import AddMemoryForm from './components/AddMemoryForm';
 import AddPersonForm from './components/AddPersonForm';
 import MemoryList from './components/MemoryList';
@@ -22,7 +21,7 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import { ExportService } from './services/ExportService';
 
 type AppState = 'AUTH' | 'ACTIVE';
-type ViewMode = 'TREE' | 'ARCHIVE' | 'TIMELINE' | 'DASHBOARD';
+type ViewMode = 'DASHBOARD' | 'MEMORIES' | 'TIMELINE';
 type DisplayStyle = 'GALLERY' | 'LEDGER';
 
 const MURRAY_PROTOCOL_KEY = "MURRAY_LEGACY_2026"; 
@@ -49,7 +48,6 @@ function App() {
   });
 
   const [selectedPersonId, setSelectedPersonId] = useState<string>('');
-  const [selectedFamilyGroup, setSelectedFamilyGroup] = useState<string>('');
 
   const [memoryTree, setMemoryTree] = useState<MemoryTree>({
     protocolKey: MURRAY_PROTOCOL_KEY,
@@ -60,13 +58,6 @@ function App() {
 
   const [showAddMemoryForm, setShowAddMemoryForm] = useState(false);
   const [showAddPersonForm, setShowAddPersonForm] = useState(false);
-
-  // Derived unique family groups
-  const familyGroups = useMemo(() => {
-    const groups = new Set<string>();
-    memoryTree.people.forEach(p => { if (p.familyGroup) groups.add(p.familyGroup); });
-    return Array.from(groups);
-  }, [memoryTree.people]);
 
   // --- OFFLINE PERSISTENCE INITIALIZATION ---
   useEffect(() => {
@@ -245,12 +236,7 @@ function App() {
 
   const filteredMemories = memoryTree.memories.filter(m => {
     const personMatch = !selectedPersonId || m.tags.personIds.includes(selectedPersonId);
-    let familyMatch = true;
-    if (selectedFamilyGroup) {
-        const peopleInGroup = memoryTree.people.filter(p => p.familyGroup === selectedFamilyGroup).map(p => p.id);
-        familyMatch = m.tags.personIds.some(id => peopleInGroup.includes(id));
-    }
-    return personMatch && familyMatch;
+    return personMatch;
   });
 
   const handleExportMemoryBook = async (exportFormat: 'ZIP' | 'HTML' = 'ZIP', theme: 'CLASSIC' | 'MODERN' | 'MINIMAL' = 'CLASSIC') => {
@@ -338,14 +324,11 @@ function App() {
         </div>
 
         <nav className="flex-grow-1">
-            <div className={`nav-item-modern ${viewMode === 'TREE' ? 'active' : ''}`} onClick={() => setViewMode('TREE')} style={{ cursor: 'pointer', padding: '0.75rem 1rem', marginBottom: '0.5rem', borderLeft: viewMode === 'TREE' ? '3px solid var(--gold-accent)' : '3px solid transparent', color: viewMode === 'TREE' ? 'var(--navy-primary)' : 'var(--text-secondary)', fontWeight: viewMode === 'TREE' ? '600' : '500' }}>
-                Family Tree
-            </div>
-            <div className={`nav-item-modern ${viewMode === 'ARCHIVE' ? 'active' : ''}`} onClick={() => setViewMode('ARCHIVE')} style={{ cursor: 'pointer', padding: '0.75rem 1rem', marginBottom: '0.5rem', borderLeft: viewMode === 'ARCHIVE' ? '3px solid var(--gold-accent)' : '3px solid transparent', color: viewMode === 'ARCHIVE' ? 'var(--navy-primary)' : 'var(--text-secondary)', fontWeight: viewMode === 'ARCHIVE' ? '600' : '500' }}>
-                Memory Gallery
+            <div className={`nav-item-modern ${viewMode === 'MEMORIES' ? 'active' : ''}`} onClick={() => setViewMode('MEMORIES')} style={{ cursor: 'pointer', padding: '0.75rem 1rem', marginBottom: '0.5rem', borderLeft: viewMode === 'MEMORIES' ? '3px solid var(--gold-accent)' : '3px solid transparent', color: viewMode === 'MEMORIES' ? 'var(--navy-primary)' : 'var(--text-secondary)', fontWeight: viewMode === 'MEMORIES' ? '600' : '500' }}>
+                Memories
             </div>
             <div className={`nav-item-modern ${viewMode === 'TIMELINE' ? 'active' : ''}`} onClick={() => setViewMode('TIMELINE')} style={{ cursor: 'pointer', padding: '0.75rem 1rem', marginBottom: '0.5rem', borderLeft: viewMode === 'TIMELINE' ? '3px solid var(--gold-accent)' : '3px solid transparent', color: viewMode === 'TIMELINE' ? 'var(--navy-primary)' : 'var(--text-secondary)', fontWeight: viewMode === 'TIMELINE' ? '600' : '500' }}>
-                Chronology
+                Timeline
             </div>
 
             <div className="mt-5 px-3">
@@ -373,11 +356,11 @@ function App() {
       <main className="main-content-area">
         <header className="d-flex justify-content-between align-items-end mb-5">
             <div>
-                <h1 className="display-6 mb-1" style={{ color: 'var(--royal-indigo)' }}>{viewMode === 'TREE' ? 'Lineage Topology' : viewMode === 'ARCHIVE' ? 'Archival Vault' : 'Heritage Chronology'}</h1>
+                <h1 className="display-6 mb-1" style={{ color: 'var(--royal-indigo)' }}>{viewMode === 'MEMORIES' ? 'Memory Collection' : 'Timeline'}</h1>
                 <p className="text-muted small text-uppercase tracking-widest mb-0" style={{ fontSize: '0.65rem' }}>Sovereign Infrastructure • Encrypted</p>
             </div>
             
-            {viewMode === 'ARCHIVE' && (
+            {viewMode === 'MEMORIES' && (
                 <div className="d-flex gap-2">
                     <button className={`view-toggle-btn ${displayStyle === 'GALLERY' ? 'active' : ''}`} onClick={() => setDisplayStyle('GALLERY')}>Gallery</button>
                     <button className={`view-toggle-btn ${displayStyle === 'LEDGER' ? 'active' : ''}`} onClick={() => setDisplayStyle('LEDGER')}>Ledger</button>
@@ -391,48 +374,22 @@ function App() {
               totalMemories={memoryTree.memories.length}
               totalPeople={memoryTree.people.length}
               lastUpdated={memoryTree.memories.length > 0 ? new Date(memoryTree.memories[0].timestamp) : undefined}
-              onBrowseMemories={() => setViewMode('ARCHIVE')}
+              onBrowseMemories={() => setViewMode('MEMORIES')}
               onBrowseTimeline={() => setViewMode('TIMELINE')}
-              onBrowsePeople={() => setViewMode('TREE')}
+              onBrowsePeople={() => setViewMode('MEMORIES')}
               onViewBio={() => setEditingFamilyBio(true)}
               onAddMemory={() => setShowAddMemoryForm(true)}
               onExport={() => handleExportMemoryBook('ZIP', 'CLASSIC')}
             />
         )}
 
-        {viewMode === 'TREE' && (
-            <div className="animate-slide-up h-100 d-flex flex-column">
-                <div className="card-modern p-4 mb-4 bg-white border shadow-sm flex-grow-1 overflow-hidden" style={{ borderRadius: '12px' }}>
-                    <TreeDisplay tree={memoryTree} onSelectPerson={(id) => { 
-                        if (!id || id === 'FAMILY') {
-                            setEditingFamilyBio(true);
-                        } else {
-                            const person = memoryTree.people.find(p => p.id === id);
-                            if (person) setViewingPerson(person);
-                        }
-                    }} />
-                </div>
-                <div className="d-flex gap-3">
-                    <button className="btn btn-secondary-modern" style={{ borderRadius: '8px' }} onClick={() => setShowAddPersonForm(true)}>+ Register Member</button>
-                    <button className="btn btn-link text-muted small p-0 text-decoration-none" onClick={() => setEditingFamilyBio(true)}>Edit Family Narrative</button>
-                </div>
-            </div>
-        )}
-
-        {viewMode === 'ARCHIVE' && (
+        {viewMode === 'MEMORIES' && (
             <div className="animate-slide-up">
                 <div className="row g-4 mb-4">
-                    <div className="col-md-6">
-                        <label className="small fw-bold text-muted mb-2 d-block text-uppercase tracking-widest" style={{ fontSize: '0.6rem' }}>Family Branch</label>
-                        <select className="form-select form-control-modern" value={selectedFamilyGroup} onChange={e => setSelectedFamilyGroup(e.target.value)}>
-                            <option value="">All Branches</option>
-                            {familyGroups.map(g => <option key={g} value={g}>{g}</option>)}
-                        </select>
-                    </div>
-                    <div className="col-md-6">
-                        <label className="small fw-bold text-muted mb-2 d-block text-uppercase tracking-widest" style={{ fontSize: '0.6rem' }}>Member Filter</label>
+                    <div className="col-md-12">
+                        <label className="small fw-bold text-muted mb-2 d-block text-uppercase tracking-widest" style={{ fontSize: '0.6rem' }}>Filter by Person</label>
                         <select className="form-select form-control-modern" value={selectedPersonId} onChange={e => setSelectedPersonId(e.target.value)}>
-                            <option value="">All Members</option>
+                            <option value="">All Memories</option>
                             {memoryTree.people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
                     </div>
@@ -444,7 +401,7 @@ function App() {
 
         {viewMode === 'TIMELINE' && (
             <div className="animate-slide-up">
-                <TimelineView memories={filteredMemories} people={memoryTree.people} onSelectPerson={(id) => { setSelectedPersonId(id); setViewMode('ARCHIVE'); }} />
+                <TimelineView memories={filteredMemories} people={memoryTree.people} onSelectPerson={(id) => { setSelectedPersonId(id); setViewMode('MEMORIES'); }} />
             </div>
         )}
 
