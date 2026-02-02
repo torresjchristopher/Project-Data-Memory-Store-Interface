@@ -90,7 +90,6 @@ class ExportServiceImpl {
   private generateHTMLArchive(tree: MemoryTree): string {
     const memorysByType = this.groupMemoriesByType(tree.memories);
     const memorysByPerson = this.groupMemoriesByPerson(tree.memories, tree.people);
-    const bio = tree.memories.length > 0 ? 'Heritage preserved' : 'Archive begun';
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -100,131 +99,131 @@ class ExportServiceImpl {
   <title>${tree.familyName} Memory Archive</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
       line-height: 1.6;
-      color: #333;
-      background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);
-      min-height: 100vh;
+      color: #1f2937;
+      background: #f9fafb;
     }
     .container {
       max-width: 1200px;
       margin: 0 auto;
-      padding: 2rem;
+      padding: 3rem 2rem;
     }
     header {
-      background: white;
-      padding: 3rem 2rem;
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);
+      color: white;
+      padding: 4rem 2rem;
+      border-radius: 16px;
       margin-bottom: 3rem;
-      border-left: 6px solid #1e1b4b;
+      box-shadow: 0 20px 40px rgba(30, 27, 75, 0.15);
+      text-align: center;
     }
     h1 {
-      color: #1e1b4b;
-      font-size: 2.5em;
+      font-size: 2.8em;
       margin-bottom: 0.5rem;
       font-weight: 300;
-      letter-spacing: 0.02em;
+      letter-spacing: -0.01em;
     }
     .subtitle {
-      color: #666;
-      font-size: 1.1em;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 1rem;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      font-size: 0.75rem;
-    }
-    .bio {
-      background: #f9f9f9;
-      padding: 2rem;
-      border-radius: 8px;
-      margin-top: 2rem;
-      font-style: italic;
-      border-left: 4px solid #b45309;
-      line-height: 1.8;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 2rem;
-      margin-bottom: 3rem;
-    }
-    .card {
-      background: white;
-      border-radius: 12px;
-      padding: 2rem;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    .card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 15px 30px rgba(0,0,0,0.15);
-    }
-    .card h3 {
-      color: #1e1b4b;
       margin-bottom: 1rem;
-      font-size: 1.4em;
-      font-weight: 600;
     }
-    .card p {
-      color: #666;
+    .timestamp {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 0.875rem;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+    .stat-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      padding: 1.5rem;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-number {
+      font-size: 2em;
+      font-weight: 700;
       margin-bottom: 0.5rem;
     }
-    .stat {
-      font-weight: bold;
+    .stat-label {
+      font-size: 0.875rem;
+      opacity: 0.9;
+    }
+    h2 {
       color: #1e1b4b;
-      font-size: 1.5em;
+      font-size: 2em;
+      margin-bottom: 2rem;
+      font-weight: 600;
+      border-bottom: 2px solid #e5e7eb;
+      padding-bottom: 1rem;
     }
     .person-section {
       background: white;
-      padding: 2rem;
+      padding: 2.5rem;
       border-radius: 12px;
       margin-bottom: 2rem;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+      box-shadow: 0 4px 12px rgba(30, 27, 75, 0.08);
+      border-left: 4px solid #1e1b4b;
     }
-    .person-section h2 {
+    .person-section h3 {
       color: #1e1b4b;
-      border-bottom: 2px solid #b45309;
+      border-bottom: 2px solid #d4a574;
       padding-bottom: 1rem;
       margin-bottom: 1.5rem;
+      font-size: 1.5em;
     }
     .memories-list {
-      display: grid;
-      gap: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
     }
     .memory-item {
-      padding: 1rem;
-      background: #f9f9f9;
-      border-left: 4px solid #1e1b4b;
-      border-radius: 4px;
+      padding: 1.5rem;
+      background: #f9fafb;
+      border-left: 3px solid #d4a574;
+      border-radius: 6px;
+      transition: background 200ms ease;
+    }
+    .memory-item:hover {
+      background: #f3f4f6;
     }
     .memory-date {
-      font-size: 0.85em;
-      color: #999;
+      color: #1e1b4b;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
       text-transform: uppercase;
+      font-size: 0.875rem;
       letter-spacing: 0.05em;
     }
     .memory-text {
-      margin-top: 0.5rem;
-      color: #333;
+      color: #4b5563;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-wrap: break-word;
     }
     footer {
-      background: white;
-      padding: 2rem;
-      border-radius: 12px;
       text-align: center;
-      color: #666;
+      padding: 2rem;
+      color: #9ca3af;
+      font-size: 0.875rem;
+      border-top: 1px solid #e5e7eb;
       margin-top: 3rem;
-      border-top: 2px solid #f0f0f0;
-    }
-    .generated {
-      font-size: 0.9em;
-      color: #999;
     }
     @media (max-width: 768px) {
-      h1 { font-size: 1.8em; }
-      .grid { grid-template-columns: 1fr; }
-      .container { padding: 1rem; }
+      .container { padding: 1.5rem; }
+      h1 { font-size: 2em; }
+      h2 { font-size: 1.5em; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
     }
   </style>
 </head>
@@ -232,34 +231,23 @@ class ExportServiceImpl {
   <div class="container">
     <header>
       <h1>${tree.familyName}</h1>
-      <p class="subtitle">Memory Archive • Heritage Preservation</p>
-      <div class="bio">${this.escapeHtml(bio)}</div>
+      <div class="subtitle">Family Heritage Archive</div>
+      <div class="timestamp">Generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number">${tree.memories.length}</div>
+          <div class="stat-label">Memories</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">${tree.people.length}</div>
+          <div class="stat-label">Members</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">${Object.keys(memorysByType).length}</div>
+          <div class="stat-label">Types</div>
+        </div>
+      </div>
     </header>
-
-    <div class="grid">
-      <div class="card">
-        <h3>📊 Archive Overview</h3>
-        <p>Family Members: <span class="stat">${tree.people.length}</span></p>
-        <p>Total Memories: <span class="stat">${tree.memories.length}</span></p>
-        <p>Generated: <span class="stat">${new Date().toLocaleDateString()}</span></p>
-      </div>
-
-      <div class="card">
-        <h3>📂 Collection Types</h3>
-        ${Object.entries(memorysByType)
-          .map(
-            ([type, count]) =>
-              `<p>${this.getTypeEmoji(type)} ${this.capitalize(type)}: <span class="stat">${count}</span></p>`
-          )
-          .join('')}
-      </div>
-
-      <div class="card">
-        <h3>👥 Family Statistics</h3>
-        <p>Birth Years: ${this.getYearRange(tree.people)}</p>
-        <p>Archive Size: <span class="stat">${this.formatSize(new Blob([JSON.stringify(tree)]).size * 10)}</span></p>
-      </div>
-    </div>
 
     ${Object.entries(memorysByPerson)
       .map(
@@ -268,17 +256,17 @@ class ExportServiceImpl {
           if (!person) return '';
           return `
             <div class="person-section">
-              <h2>👤 ${this.escapeHtml(person.name)} (b. ${person.birthYear})</h2>
-              ${person.bio ? `<p>${this.escapeHtml(person.bio)}</p>` : ''}
+              <h3>👤 ${this.escapeHtml(person.name)} (b. ${person.birthYear || '?'})</h3>
+              ${person.bio ? `<p style="margin-bottom: 1.5rem; color: #6b7280;">${this.escapeHtml(person.bio)}</p>` : ''}
               <div class="memories-list">
                 ${memories
-                  .slice(0, 20)
+                  .slice(0, 50)
                   .map(
                     (m) =>
                       `<div class="memory-item">
-                  <div class="memory-date">${new Date(m.timestamp).toLocaleDateString()}</div>
-                  <div class="memory-text">${this.escapeHtml(m.content.split('|DELIM|')[0] || 'Memory')}</div>
-                </div>`
+                    <div class="memory-date">${new Date(m.timestamp).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                    <div class="memory-text">${this.escapeHtml(m.content.split('|DELIM|')[0])}</div>
+                  </div>`
                   )
                   .join('')}
               </div>
@@ -289,8 +277,8 @@ class ExportServiceImpl {
       .join('')}
 
     <footer>
-      <p class="generated">Archive generated on ${new Date().toLocaleString()}</p>
-      <p>This archive preserves family heritage in perpetuity.</p>
+      <p>🏛️ <strong>${tree.familyName}</strong> Heritage Archive</p>
+      <p style="margin-top: 0.5rem;">Generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} • Preserved for future generations</p>
     </footer>
   </div>
 </body>
@@ -440,48 +428,6 @@ Border Radius: 12px (major), 4px (minor)`;
       "'": '&#039;',
     };
     return text.replace(/[&<>"']/g, (m) => map[m]);
-  }
-
-  /**
-   * Get emoji for memory type
-   */
-  private getTypeEmoji(type: string): string {
-    const emojis: Record<string, string> = {
-      image: '📷',
-      video: '🎬',
-      audio: '🎵',
-      document: '📄',
-      pdf: '📕',
-      text: '✍️',
-    };
-    return emojis[type] || '📎';
-  }
-
-  /**
-   * Get year range from people
-   */
-  private getYearRange(people: Person[]): string {
-    const years = people.map((p) => p.birthYear).filter((y) => y);
-    if (years.length === 0) return 'N/A';
-    return `${Math.min(...years)} - ${Math.max(...years)}`;
-  }
-
-  /**
-   * Capitalize string
-   */
-  private capitalize(str: string): string {
-    return str.charAt(0).toUpperCase() + str.slice(1);
-  }
-
-  /**
-   * Format bytes to readable size
-   */
-  private formatSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   }
 }
 

@@ -14,7 +14,7 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemories, on
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedPersonIds, setSelectedPersonIds] = useState<string[]>([]);
   const [newPersonName, setNewPersonName] = useState('');
-  const [birthYear, setBirthYear] = useState('');
+  const [birthDate, setBirthDate] = useState('');
   const [files, setFiles] = useState<Array<{ data: string; type: MemoryType; name: string }>>([]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,15 +48,16 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemories, on
     e.preventDefault();
 
     if (isAddingPerson) {
-      if (!newPersonName || !birthYear) return;
+      if (!newPersonName || !birthDate) return;
       onAddPerson({
         id: Math.random().toString(36).substr(2, 9),
         name: newPersonName,
-        birthYear: parseInt(birthYear),
+        birthDate: birthDate,
+        birthYear: parseInt(birthDate.split('-')[0]),
         familyGroup: 'Family'
       });
       setNewPersonName('');
-      setBirthYear('');
+      setBirthDate('');
       setIsAddingPerson(false);
       return;
     }
@@ -157,12 +158,11 @@ const AddMemoryForm: React.FC<AddMemoryFormProps> = ({ people, onAddMemories, on
                 </div>
 
                 <div style={{ marginBottom: '24px' }}>
-                  <label style={labelStyle}>Birth Year</label>
+                  <label style={labelStyle}>Date of Birth</label>
                   <input
-                    type="number"
-                    placeholder="1950"
-                    value={birthYear}
-                    onChange={(e) => setBirthYear(e.target.value)}
+                    type="date"
+                    value={birthDate}
+                    onChange={(e) => setBirthDate(e.target.value)}
                     required
                     style={inputStyle}
                   />

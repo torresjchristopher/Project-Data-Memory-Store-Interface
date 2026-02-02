@@ -9,25 +9,26 @@ interface AddPersonFormProps {
 
 const AddPersonForm: React.FC<AddPersonFormProps> = ({ personToEdit, onSave, onCancel }) => {
   const [name, setName] = useState('');
-  const [birthYear, setBirthYear] = useState('');
+  const [birthDate, setBirthDate] = useState('');
   const [bio, setBio] = useState('');
 
   useEffect(() => {
     if (personToEdit) {
       setName(personToEdit.name);
-      setBirthYear(personToEdit.birthYear.toString());
+      setBirthDate(personToEdit.birthDate || '');
       setBio(personToEdit.bio || '');
     }
   }, [personToEdit]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !birthYear) return;
+    if (!name.trim() || !birthDate) return;
 
     const person: Person = {
       id: personToEdit ? personToEdit.id : Math.random().toString(36).substr(2, 9),
       name: name.trim(),
-      birthYear: parseInt(birthYear),
+      birthDate: birthDate,
+      birthYear: parseInt(birthDate.split('-')[0]), // Extract year for compatibility
       bio: bio.trim(),
     };
 
@@ -92,12 +93,11 @@ const AddPersonForm: React.FC<AddPersonFormProps> = ({ personToEdit, onSave, onC
             </div>
 
             <div style={{ marginBottom: '24px' }}>
-              <label style={labelStyle}>Birth Year</label>
+              <label style={labelStyle}>Date of Birth</label>
               <input 
-                type="number" 
-                placeholder="1950"
-                value={birthYear} 
-                onChange={(e) => setBirthYear(e.target.value)} 
+                type="date" 
+                value={birthDate} 
+                onChange={(e) => setBirthDate(e.target.value)} 
                 required 
                 style={inputStyle}
               />

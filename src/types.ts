@@ -3,7 +3,8 @@
 export interface Person {
   id: string;
   name: string;
-  birthYear: number;
+  birthDate?: string; // ISO date format: YYYY-MM-DD
+  birthYear?: number; // Legacy support
   bio?: string; // Short biography or additional details
   parentId?: string;
   familyGroup?: string;

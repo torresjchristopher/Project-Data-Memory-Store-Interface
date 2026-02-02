@@ -4,10 +4,11 @@ import './styles/DesignSystem.css';
 import './styles/Magazine.css';
 import './styles/Dashboard.css';
 import './styles/Fluid.css';
+import './styles/Auth.css';
 import './App.css';
 import AddMemoryForm from './components/AddMemoryForm';
 import AddPersonForm from './components/AddPersonForm';
-import MemoryList from './components/MemoryList';
+import MemoryBrowser from './components/MemoryBrowser';
 import TimelineView from './components/TimelineView';
 import ArtifactDeepView from './components/ArtifactDeepView';
 import WelcomeDashboard from './components/WelcomeDashboard';
@@ -275,42 +276,42 @@ function App() {
 
   if (appState === 'AUTH') {
     return (
-      <div className="landing-page-wrapper">
-        <div className="landing-hero position-relative overflow-hidden">
-            {/* HERITAGE SLIDESHOW BACKGROUND */}
-            <div className="slideshow-overlay">
-                {memoryTree.memories.filter(m => m.type === 'image').slice(0, 10).map((m, idx) => (
-                    <div 
-                        key={m.id} 
-                        className="slide-item" 
-                        style={{ 
-                            backgroundImage: `url(${m.content.split('|DELIM|')[1]})`,
-                            animationDelay: `${idx * 6}s`
-                        }}
-                    ></div>
-                ))}
-                <div className="vignette-layer"></div>
+      <div className="auth-container">
+        {/* Animated background elements */}
+        <div className="auth-bg-decoration"></div>
+
+        {/* Auth Card */}
+        <div className="auth-card">
+          <div className="auth-card-inner">
+            <h1 className="auth-title">Schnitzel Bank</h1>
+            <p className="auth-subtitle">Family Heritage Vault</p>
+
+            <div className="auth-form-group">
+              <label className="auth-label">Vault Key</label>
+              <input
+                type="password"
+                title="password"
+                placeholder="Enter vault key"
+                value={passwordInput}
+                onChange={e => setPasswordInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleMurrayAuth()}
+                className="auth-input"
+              />
             </div>
 
-            <div className="container position-relative z-index-10">
-                <div className="row align-items-center vh-100">
-                    <div className="col-lg-6 text-start">
-                        <h1 className="landing-title mb-4" style={{ fontFamily: 'var(--font-serif)', fontSize: '5rem', fontWeight: '300', color: 'white' }}>Heritage <br/>Sovereignty.</h1>
-                        <p className="landing-subtitle mb-10" style={{ fontSize: '1.1rem', letterSpacing: '0.02em', color: 'rgba(255,255,255,0.7)' }}>Absolute data permanence for the Murray lineage. Built on Yukora Zero-Knowledge protocols.</p>
-                        <div className="auth-card-wrapper animate-slide-up">
-                            <div className="card-modern p-10 border-0 shadow-2xl" style={{ background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(10px)', borderRadius: '16px' }}>
-                                <h3 className="h5 mb-6 fw-bold text-uppercase tracking-widest" style={{ fontSize: '0.8rem', color: 'var(--royal-indigo)' }}>Vault Access</h3>
-                                <div className="mb-6">
-                                    <label className="small fw-bold text-muted mb-3 d-block text-uppercase tracking-widest" style={{ fontSize: '0.6rem' }}>Heritage Protocol Key</label>
-                                    <input type="password" title="password" className="form-control-modern w-100" placeholder="••••••••" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleMurrayAuth()} />
-                                </div>
-                                <button className="btn btn-primary-modern w-100 py-4" style={{ borderRadius: '12px' }} onClick={handleMurrayAuth}>Engage Handshake</button>
-                                {authError && <div className="text-danger mt-4 small fw-bold text-uppercase tracking-widest" style={{ fontSize: '0.6rem' }}>{authError}</div>}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <button
+              onClick={handleMurrayAuth}
+              className="auth-button"
+            >
+              Open Vault
+            </button>
+
+            {authError && (
+              <div className="auth-error">
+                {authError}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -346,11 +347,13 @@ function App() {
             <div className="mb-4">
               <SyncStatusIndicator compact />
             </div>
-            <button className="btn btn-primary w-100 mb-2" style={{ borderRadius: '8px', fontSize: '0.8rem', padding: '0.6rem' }} onClick={() => setShowAddMemoryForm(true)}>Add Artifact</button>
-            <div className="d-flex gap-2">
+            <button className="btn btn-primary w-100 mb-2" style={{ borderRadius: '8px', fontSize: '0.8rem', padding: '0.6rem' }} onClick={() => setShowAddMemoryForm(true)}>Add Memory</button>
+            <button className="btn btn-secondary w-100 mb-3" style={{ borderRadius: '8px', fontSize: '0.8rem', padding: '0.6rem', borderColor: 'var(--navy-lighter)', background: 'transparent', color: 'var(--navy-primary)' }} onClick={() => setShowAddPersonForm(true)}>Add Person</button>
+            <div className="d-flex gap-2 mb-2">
               <button className="btn btn-secondary flex-grow-1" style={{ borderRadius: '6px', fontSize: '0.75rem', padding: '0.5rem' }} onClick={() => handleExportMemoryBook('ZIP', 'CLASSIC')}>ZIP</button>
               <button className="btn btn-secondary flex-grow-1" style={{ borderRadius: '6px', fontSize: '0.75rem', padding: '0.5rem' }} onClick={() => handleExportMemoryBook('HTML', 'CLASSIC')}>HTML</button>
             </div>
+            <button className="btn btn-secondary w-100" style={{ borderRadius: '6px', fontSize: '0.75rem', padding: '0.5rem' }} onClick={() => handleExportMemoryBook('ZIP', 'CLASSIC')}>📖 Memory Book</button>
         </div>
       </aside>
 
@@ -386,17 +389,7 @@ function App() {
 
         {viewMode === 'MEMORIES' && (
             <div className="animate-slide-up">
-                <div className="row g-4 mb-4">
-                    <div className="col-md-12">
-                        <label className="small fw-bold text-muted mb-2 d-block text-uppercase tracking-widest" style={{ fontSize: '0.6rem' }}>Filter by Person</label>
-                        <select className="form-select form-control-modern" value={selectedPersonId} onChange={e => setSelectedPersonId(e.target.value)}>
-                            <option value="">All Memories</option>
-                            {memoryTree.people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
-                    </div>
-                </div>
-                
-                <MemoryList memories={filteredMemories} people={memoryTree.people} onArtifactClick={setSelectedArtifact} />
+                <MemoryBrowser tree={memoryTree} onArtifactClick={setSelectedArtifact} />
             </div>
         )}
 

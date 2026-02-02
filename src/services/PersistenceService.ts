@@ -540,31 +540,84 @@ class PersistenceServiceImpl {
   }
 
   /**
-   * Clear all cached data (use with caution!)
+   * CRITICAL: Verify all data is safely persisted
+   * Returns counts of memories and people in vault
    */
-  async clearAllData(): Promise<void> {
+  async verifyDataIntegrity(protocolKey: string): Promise<{
+    memoriesCount: number;
+    peopleCount: number;
+    queuedCount: number;
+    status: 'SAFE' | 'WARNING' | 'CRITICAL';
+  }> {
+    try {
+      const db = await this.ensureDb();
+
+      const memCount = await new Promise<number>((resolve) => {
+        const request = db.transaction('memories').objectStore('memories').count();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => resolve(0);
+      });
+
+      const peopleCount = await new Promise<number>((resolve) => {
+        const request = db.transaction('people').objectStore('people').count();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => resolve(0);
+      });
+
+      const queuedCount = await new Promise<number>((resolve) => {
+        const request = db.transaction('syncQueue').objectStore('syncQueue').count();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => resolve(0);
+      });
+
+      // Log for debugging
+      console.log(`🏛️ Vault Integrity Check (${protocolKey}) - Memories: ${memCount}, People: ${peopleCount}, Queued: ${queuedCount}`);
+
+      return {
+        memoriesCount: memCount,
+        peopleCount: peopleCount,
+        queuedCount: queuedCount,
+        status: memCount > 0 || peopleCount > 0 ? 'SAFE' : 'WARNING'
+      };
+    } catch (error) {
+      console.error('Data integrity check failed:', error);
+      return {
+        memoriesCount: 0,
+        peopleCount: 0,
+        queuedCount: 0,
+        status: 'CRITICAL'
+      };
+    }
+  }
+
+  /**
+   * Create a backup of all vault data as JSON
+   * For manual preservation
+   */
+  async backupAllData(protocolKey: string): Promise<Blob> {
     const db = await this.ensureDb();
 
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(['memories', 'people', 'syncQueue', 'metadata', 'sessionState'], 'readwrite');
-
-      transaction.objectStore('memories').clear();
-      transaction.objectStore('people').clear();
-      transaction.objectStore('syncQueue').clear();
-      transaction.objectStore('metadata').clear();
-      transaction.objectStore('sessionState').clear();
-
-      transaction.oncomplete = () => {
-        this.syncStatus.pendingOperations = 0;
-        localStorage.removeItem('SYNC_STATUS');
-        this.notifyListeners();
-        resolve();
-      };
-
-      transaction.onerror = () => {
-        reject(new Error('Failed to clear vault'));
-      };
+    const memories = await new Promise<Memory[]>((resolve) => {
+      const request = db.transaction('memories').objectStore('memories').getAll();
+      request.onsuccess = () => resolve(request.result as Memory[]);
+      request.onerror = () => resolve([]);
     });
+
+    const people = await new Promise<Person[]>((resolve) => {
+      const request = db.transaction('people').objectStore('people').getAll();
+      request.onsuccess = () => resolve(request.result as Person[]);
+      request.onerror = () => resolve([]);
+    });
+
+    const backup = {
+      timestamp: new Date().toISOString(),
+      protocolKey,
+      memories,
+      people,
+      integrity: await this.verifyDataIntegrity(protocolKey)
+    };
+
+    return new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
   }
 }
 
