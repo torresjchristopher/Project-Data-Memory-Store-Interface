@@ -30,3 +30,9 @@ dist-ssr
 /*.png
 /*.jpg
 /*.jpeg
+
+# Local scratch (never commit)
+/docs/_local/
+
+# Local scratch (never commit)
+/docs/_local/
