@@ -6,12 +6,12 @@ import type { MemoryTree } from './types';
 import { ExportService } from './services/ExportService';
 import { MemoryBookPdfService } from './services/MemoryBookPdfService';
 import { subscribeToMemoryTree } from './services/TreeSubscriptionService';
-import YukoraLanding from './components/YukoraLanding';
-import GalleryPage from './pages/GalleryPage';
-import PeoplePage from './pages/PeoplePage';
-import SearchPage from './pages/SearchPage';
+import GalleryPreviewLanding from './pages/GalleryPreviewLanding';
+import ImprovedGalleryPage from './pages/ImprovedGalleryPage';
+import ImprovedPeoplePage from './pages/ImprovedPeoplePage';
+import ImprovedSearchPage from './pages/ImprovedSearchPage';
 import ExportPage from './pages/ExportPage';
-import DownloadsPage from './pages/DownloadsPage';
+import PrivacyPage from './pages/PrivacyPage';
 import ArtifactCliPage from './pages/ArtifactCliPage';
 
 const MURRAY_PROTOCOL_KEY = "MURRAY_LEGACY_2026";
@@ -67,12 +67,12 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<YukoraLanding />} />
-        <Route path="/gallery" element={<GalleryPage tree={memoryTree} onExport={handleExport} />} />
-        <Route path="/people" element={<PeoplePage tree={memoryTree} />} />
-        <Route path="/search" element={<SearchPage tree={memoryTree} />} />
+        <Route path="/" element={<GalleryPreviewLanding tree={memoryTree} />} />
+        <Route path="/gallery" element={<ImprovedGalleryPage tree={memoryTree} onExport={handleExport} />} />
+        <Route path="/people" element={<ImprovedPeoplePage tree={memoryTree} />} />
+        <Route path="/search" element={<ImprovedSearchPage tree={memoryTree} />} />
         <Route path="/export" element={<ExportPage tree={memoryTree} onExport={handleExport} />} />
-        <Route path="/downloads" element={<DownloadsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/artifact-cli" element={<ArtifactCliPage />} />
       </Routes>
     </BrowserRouter>
