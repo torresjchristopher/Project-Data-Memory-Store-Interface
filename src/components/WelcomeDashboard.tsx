@@ -140,12 +140,27 @@ export const WelcomeDashboard: React.FC<WelcomeDashboardProps> = ({
 
       {/* Export Options */}
       <section className="dashboard-export-section">
-        <h2 className="section-title">Preserve & Share</h2>
-        <div className="export-info">
-          <p>
-            Your archive is always synced and secure. Export your family story in multiple formats 
-            for backup, sharing, or creating a professional memory book.
-          </p>
+        <div className="export-welcome">
+          <h2 className="export-heading">Welcome {familyName}</h2>
+          <p className="export-subheading">Here are your family archives:</p>
+          
+          <div className="export-buttons">
+            <button className="export-btn export-btn-zip" onClick={onExport}>
+              📦 Download ZIP Export
+            </button>
+            <button className="export-btn export-btn-pdf" onClick={onExport}>
+              📕 Download Memory Book PDF
+            </button>
+          </div>
+
+          <div className="collection-stats">
+            <h3>Your Collection:</h3>
+            <ul className="stats-list">
+              <li>✓ <strong>{totalPeople}</strong> family members added</li>
+              <li>✓ <strong>{totalMemories}</strong> total artifacts preserved</li>
+              <li>✓ Updated: {lastUpdated ? formatLastUpdated(lastUpdated) : 'Never'}</li>
+            </ul>
+          </div>
         </div>
       </section>
 
