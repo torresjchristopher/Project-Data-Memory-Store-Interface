@@ -1,21 +1,15 @@
 import { useState, useEffect } from 'react';
 import './App.css';
-import LandingPage from './components/LandingPage';
-import Gallery from './components/Gallery';
+import ModernGallery from './components/ModernGallery';
 import { PersistenceService } from './services/PersistenceService';
 import type { MemoryTree } from './types';
-import { db } from './firebase';
-import { collection, onSnapshot } from "firebase/firestore";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { ExportService } from './services/ExportService';
 import { MemoryBookPdfService } from './services/MemoryBookPdfService';
-
-type AppState = 'AUTH' | 'GALLERY';
+import { subscribeToMemoryTree } from './services/TreeSubscriptionService';
 
 const MURRAY_PROTOCOL_KEY = "MURRAY_LEGACY_2026";
 
 function App() {
-  const [appState, setAppState] = useState<AppState>('AUTH');
   const [memoryTree, setMemoryTree] = useState<MemoryTree>({
     protocolKey: MURRAY_PROTOCOL_KEY,
     familyName: 'The Murray Family',
@@ -23,45 +17,20 @@ function App() {
     memories: [],
   });
 
-  // Initialize Firebase and load data
+  // Initialize local persistence + project Firebase tree into UI state
   useEffect(() => {
     PersistenceService.getInstance();
-    
-    const auth = getAuth();
-    const authUnsub = onAuthStateChanged(auth, () => {});
 
-    // Load people
-    const peopleUnsub = onSnapshot(collection(db, 'trees', MURRAY_PROTOCOL_KEY, 'people'), (peopleSnap) => {
-      const people = peopleSnap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as any[];
-      
-      setMemoryTree(prev => ({ ...prev, people }));
+    const unsub = subscribeToMemoryTree(MURRAY_PROTOCOL_KEY, (partial) => {
+      setMemoryTree((prev) => ({
+        ...prev,
+        ...partial,
+        protocolKey: MURRAY_PROTOCOL_KEY,
+        familyName: 'The Murray Family',
+      }));
     });
 
-    // Load artifacts
-    const memoriesUnsub = onSnapshot(collection(db, 'trees', MURRAY_PROTOCOL_KEY, 'artifacts'), (memoriesSnap) => {
-      const memories = memoriesSnap.docs.map(doc => ({
-        id: doc.id,
-        timestamp: doc.data().uploadedAt ? new Date(doc.data().uploadedAt) : new Date(),
-        type: 'image',
-        content: doc.data().fileName || 'Artifact',
-        location: '',
-        tags: {
-          personIds: doc.data().person_id ? [doc.data().person_id] : [],
-          isFamilyMemory: !doc.data().person_id,
-        },
-      })) as any[];
-      
-      setMemoryTree(prev => ({ ...prev, memories }));
-    });
-
-    return () => {
-      authUnsub();
-      peopleUnsub();
-      memoriesUnsub();
-    };
+    return () => unsub();
   }, []);
 
   const handleExport = async (format: 'ZIP' | 'PDF') => {
@@ -89,16 +58,8 @@ function App() {
     }
   };
 
-  if (appState === 'AUTH') {
-    return (
-      <LandingPage 
-        onAuthSuccess={() => setAppState('GALLERY')}
-      />
-    );
-  }
-
   return (
-    <Gallery 
+    <ModernGallery 
       tree={memoryTree}
       onExport={handleExport}
     />
