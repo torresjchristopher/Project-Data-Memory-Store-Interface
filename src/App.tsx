@@ -1,18 +1,13 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import { PersistenceService } from './services/PersistenceService';
 import type { MemoryTree } from './types';
 import { ExportService } from './services/ExportService';
 import { MemoryBookPdfService } from './services/MemoryBookPdfService';
 import { subscribeToMemoryTree } from './services/TreeSubscriptionService';
-import GalleryPreviewLanding from './pages/GalleryPreviewLanding';
-import ImprovedGalleryPage from './pages/ImprovedGalleryPage';
-import ImprovedPeoplePage from './pages/ImprovedPeoplePage';
-import ImprovedSearchPage from './pages/ImprovedSearchPage';
-import ExportPage from './pages/ExportPage';
-import PrivacyPage from './pages/PrivacyPage';
-import ArtifactCliPage from './pages/ArtifactCliPage';
+import LandingPage from './pages/LandingPage';
+import MainApp from './pages/MainApp';
 
 const MURRAY_PROTOCOL_KEY = "MURRAY_LEGACY_2026";
 
@@ -67,13 +62,9 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<GalleryPreviewLanding tree={memoryTree} />} />
-        <Route path="/gallery" element={<ImprovedGalleryPage tree={memoryTree} onExport={handleExport} />} />
-        <Route path="/people" element={<ImprovedPeoplePage tree={memoryTree} />} />
-        <Route path="/search" element={<ImprovedSearchPage tree={memoryTree} />} />
-        <Route path="/export" element={<ExportPage tree={memoryTree} onExport={handleExport} />} />
-        <Route path="/privacy" element={<PrivacyPage />} />
-        <Route path="/artifact-cli" element={<ArtifactCliPage />} />
+        <Route path="/" element={<LandingPage tree={memoryTree} />} />
+        <Route path="/app" element={<MainApp tree={memoryTree} onExport={handleExport} />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

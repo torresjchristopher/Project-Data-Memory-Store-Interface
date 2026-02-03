@@ -291,7 +291,7 @@ class PersistenceServiceImpl {
       request.onsuccess = () => {
         const memories = request.result as Memory[];
         // Sort by timestamp descending (newest first)
-        memories.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        memories.sort((a, b) => new Date(b.timestamp || Date.now()).getTime() - new Date(a.timestamp || Date.now()).getTime());
         resolve(memories);
       };
 

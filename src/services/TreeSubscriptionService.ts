@@ -114,13 +114,18 @@ export function subscribeToMemoryTree(
 
             return {
               id: m.id,
+              name: fileName,
+              description: details,
               type: inferMemoryType(fileName),
               content: `${fileName}|DELIM|${details}`,
+              photoUrl: fileUrl,
               location: data?.location || '',
+              date: timestamp.toISOString(),
               timestamp,
               tags: {
                 personIds: [person.id],
                 isFamilyMemory: person.id === FAMILY_ROOT_ID,
+                customTags: (data?.tags && Array.isArray(data.tags)) ? data.tags : []
               },
             };
           });

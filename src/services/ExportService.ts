@@ -264,7 +264,7 @@ class ExportServiceImpl {
                   .map(
                     (m) =>
                       `<div class="memory-item">
-                    <div class="memory-date">${new Date(m.timestamp).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                    <div class="memory-date">${new Date(m.timestamp || Date.now()).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
                     <div class="memory-text">${this.escapeHtml(m.content.split('|DELIM|')[0])}</div>
                   </div>`
                   )

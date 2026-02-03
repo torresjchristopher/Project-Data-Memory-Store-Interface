@@ -334,7 +334,7 @@ class FolderTreeServiceImpl {
       // Check if theme matches type display name
       if (this.getTypeDisplayName(m.type) === theme) return true;
       // Check if theme is location/date related
-      if (new Date(m.timestamp).getFullYear().toString() === theme) return true;
+      if (new Date(m.timestamp || Date.now()).getFullYear().toString() === theme) return true;
       return false;
     });
   }
