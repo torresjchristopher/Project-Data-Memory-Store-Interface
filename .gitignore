@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local ad-hoc screenshots (repo root only)
+/Screenshot*.png
+
+# Repository-root ad-hoc media (keep /public/assets allowed)
+/*.png
+/*.jpg
+/*.jpeg
