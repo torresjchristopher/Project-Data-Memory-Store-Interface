@@ -6,13 +6,11 @@ import './styles/Dashboard.css';
 import './styles/Fluid.css';
 import './styles/Auth.css';
 import './App.css';
-import AddMemoryForm from './components/AddMemoryForm';
-import AddPersonForm from './components/AddPersonForm';
 import MemoryBrowser from './components/MemoryBrowser';
 import TimelineView from './components/TimelineView';
 import ArtifactDeepView from './components/ArtifactDeepView';
 import WelcomeDashboard from './components/WelcomeDashboard';
-import { ArchiveService } from './services/ArchiveService';
+import LandingPage from './components/LandingPage';
 import { PersistenceService, type SyncStatus } from './services/PersistenceService';
 import SyncStatusIndicator from './components/SyncStatusIndicator';
 import type { MemoryTree, Memory, Person } from './types';
@@ -21,25 +19,20 @@ import { db } from './firebase';
 import { doc, collection, onSnapshot } from "firebase/firestore";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import { ExportService } from './services/ExportService';
+import { MemoryBookPdfService } from './services/MemoryBookPdfService';
 
 type AppState = 'AUTH' | 'ACTIVE';
 type ViewMode = 'DASHBOARD' | 'MEMORIES' | 'TIMELINE';
 type DisplayStyle = 'GALLERY' | 'LEDGER';
 
-const MURRAY_PROTOCOL_KEY = "MURRAY_LEGACY_2026"; 
-const MURRAY_PASSWORD = "FAMILY_STRENGTH"; 
+const MURRAY_PROTOCOL_KEY = "MURRAY_LEGACY_2026";
 
 function App() {
   const [appState, setAppState] = useState<AppState>('AUTH');
   const [viewMode, setViewMode] = useState<ViewMode>('DASHBOARD');
   const [displayStyle, setDisplayStyle] = useState<DisplayStyle>('GALLERY');
   const [selectedArtifact, setSelectedArtifact] = useState<Memory | null>(null);
-  const [viewingPerson, setViewingPerson] = useState<Person | null>(null);
-  const [editingFamilyBio, setEditingFamilyBio] = useState<boolean>(false);
   const [familyBio, setFamilyBio] = useState<string>('');
-  
-  const [passwordInput, setPasswordInput] = useState('');
-  const [authError, setAuthError] = useState('');
   const [, setSyncStatus] = useState('Initiating...');
   const [, setSyncStatusObj] = useState<SyncStatus>({
     isOnline: navigator.onLine,
@@ -57,9 +50,6 @@ function App() {
     people: [],
     memories: [],
   });
-
-  const [showAddMemoryForm, setShowAddMemoryForm] = useState(false);
-  const [showAddPersonForm, setShowAddPersonForm] = useState(false);
 
   // --- OFFLINE PERSISTENCE INITIALIZATION ---
   useEffect(() => {
@@ -169,71 +159,8 @@ function App() {
   }, []);
 
   const handleMurrayAuth = () => {
-    if (passwordInput === MURRAY_PASSWORD) {
-      setAppState('ACTIVE');
-    } else {
-      setAuthError('Access Denied. Lineage not verified.');
-    }
-  };
-
-  const handleSavePerson = async (person: Person) => {
-    try {
-      setSyncStatus('Anchoring Person...');
-      const persistence = PersistenceService.getInstance();
-      
-      // Save to persistence (IndexedDB)
-      await persistence.savePerson(person, MURRAY_PROTOCOL_KEY);
-      
-      // Save to Firebase
-      await ArchiveService.savePerson(person);
-      
-      setShowAddPersonForm(false);
-      setViewingPerson(null);
-      setSyncStatus('Vault Online');
-    } catch (e) {
-      console.error("Archival Error:", e);
-      alert("Registry Error: " + (e as any).message);
-      setSyncStatus('Error');
-    }
-  };
-
-  const handleSaveFamilyBio = async (bio: string) => {
-    try {
-      setSyncStatus('Anchoring Narrative...');
-      const persistence = PersistenceService.getInstance();
-      
-      // Save to persistence (IndexedDB)
-      await persistence.saveFamilyBio(bio, MURRAY_PROTOCOL_KEY);
-      
-      // Save to Firebase
-      await ArchiveService.updateFamilyBio(bio);
-      
-      setEditingFamilyBio(false);
-      setSyncStatus('Vault Online');
-    } catch (e) {
-      console.error("Narrative Error:", e);
-      alert("Vault Root Error: " + (e as any).message);
-      setSyncStatus('Error');
-    }
-  };
-
-  const handleAddMemories = async (newMemories: Memory[]) => {
-    setSyncStatus('Archiving...');
-    try {
-        const persistence = PersistenceService.getInstance();
-        
-        // Save to persistence (IndexedDB) first
-        for (const memory of newMemories) {
-          await persistence.saveMemory(memory, MURRAY_PROTOCOL_KEY);
-        }
-        
-        // Then save to Firebase
-        await ArchiveService.depositBatch(newMemories, (msg) => setSyncStatus(msg));
-        setSyncStatus('Vault Online');
-    } catch (e) {
-        setSyncStatus('Sync Error');
-        alert("Archival Failed.");
-    }
+    // Auth is now handled by LandingPage component
+    setAppState('ACTIVE');
   };
 
   const filteredMemories = memoryTree.memories.filter(m => {
@@ -241,26 +168,31 @@ function App() {
     return personMatch;
   });
 
-  const handleExportMemoryBook = async (exportFormat: 'ZIP' | 'HTML' = 'ZIP', theme: 'CLASSIC' | 'MODERN' | 'MINIMAL' = 'CLASSIC') => {
+  const handleExportMemoryBook = async (exportFormat: 'ZIP' | 'HTML' | 'PDF' = 'ZIP', theme: 'CLASSIC' | 'MODERN' | 'MINIMAL' = 'CLASSIC') => {
     setSyncStatus('Exporting Archive...');
     try {
-      const exportService = ExportService.getInstance();
-      
       let blob: Blob;
-      if (exportFormat === 'ZIP') {
-        blob = await exportService.exportAsZip(memoryTree, familyBio, { 
-          includeMedia: true, 
-          theme 
-        });
+      
+      if (exportFormat === 'PDF') {
+        blob = await MemoryBookPdfService.generateMemoryBook(memoryTree, memoryTree.familyName);
       } else {
-        blob = await exportService.exportAsHTML(memoryTree);
+        const exportService = ExportService.getInstance();
+        if (exportFormat === 'ZIP') {
+          blob = await exportService.exportAsZip(memoryTree, familyBio, { 
+            includeMedia: true, 
+            theme 
+          });
+        } else {
+          blob = await exportService.exportAsHTML(memoryTree);
+        }
       }
 
       // Create download link
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${memoryTree.familyName.replace(/\s+/g, '_')}_Archive_${new Date().toISOString().split('T')[0]}.${exportFormat === 'ZIP' ? 'zip' : 'html'}`;
+      const ext = exportFormat === 'PDF' ? 'pdf' : (exportFormat === 'ZIP' ? 'zip' : 'html');
+      link.download = `${memoryTree.familyName.replace(/\s+/g, '_')}_MemoryBook_${new Date().toISOString().split('T')[0]}.${ext}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -276,44 +208,12 @@ function App() {
 
   if (appState === 'AUTH') {
     return (
-      <div className="auth-container">
-        {/* Animated background elements */}
-        <div className="auth-bg-decoration"></div>
-
-        {/* Auth Card */}
-        <div className="auth-card">
-          <div className="auth-card-inner">
-            <h1 className="auth-title">Schnitzel Bank</h1>
-            <p className="auth-subtitle">Family Heritage Vault</p>
-
-            <div className="auth-form-group">
-              <label className="auth-label">Vault Key</label>
-              <input
-                type="password"
-                title="password"
-                placeholder="Enter vault key"
-                value={passwordInput}
-                onChange={e => setPasswordInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleMurrayAuth()}
-                className="auth-input"
-              />
-            </div>
-
-            <button
-              onClick={handleMurrayAuth}
-              className="auth-button"
-            >
-              Open Vault
-            </button>
-
-            {authError && (
-              <div className="auth-error">
-                {authError}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      <LandingPage 
+        onAuthSuccess={() => {
+          setAppState('ACTIVE');
+          handleMurrayAuth();
+        }}
+      />
     );
   }
 
@@ -347,13 +247,11 @@ function App() {
             <div className="mb-4">
               <SyncStatusIndicator compact />
             </div>
-            <button className="btn btn-primary w-100 mb-2" style={{ borderRadius: '8px', fontSize: '0.8rem', padding: '0.6rem' }} onClick={() => setShowAddMemoryForm(true)}>Add Memory</button>
-            <button className="btn btn-secondary w-100 mb-3" style={{ borderRadius: '8px', fontSize: '0.8rem', padding: '0.6rem', borderColor: 'var(--navy-lighter)', background: 'transparent', color: 'var(--navy-primary)' }} onClick={() => setShowAddPersonForm(true)}>Add Person</button>
             <div className="d-flex gap-2 mb-2">
               <button className="btn btn-secondary flex-grow-1" style={{ borderRadius: '6px', fontSize: '0.75rem', padding: '0.5rem' }} onClick={() => handleExportMemoryBook('ZIP', 'CLASSIC')}>ZIP</button>
-              <button className="btn btn-secondary flex-grow-1" style={{ borderRadius: '6px', fontSize: '0.75rem', padding: '0.5rem' }} onClick={() => handleExportMemoryBook('HTML', 'CLASSIC')}>HTML</button>
+              <button className="btn btn-secondary flex-grow-1" style={{ borderRadius: '6px', fontSize: '0.75rem', padding: '0.5rem' }} onClick={() => handleExportMemoryBook('PDF', 'CLASSIC')}>PDF</button>
             </div>
-            <button className="btn btn-secondary w-100" style={{ borderRadius: '6px', fontSize: '0.75rem', padding: '0.5rem' }} onClick={() => handleExportMemoryBook('ZIP', 'CLASSIC')}>📖 Memory Book</button>
+            <button className="btn btn-secondary w-100" style={{ borderRadius: '6px', fontSize: '0.75rem', padding: '0.5rem' }} onClick={() => handleExportMemoryBook('PDF', 'CLASSIC')}>📖 Memory Book (PDF)</button>
         </div>
       </aside>
 
@@ -381,8 +279,6 @@ function App() {
               onBrowseMemories={() => setViewMode('MEMORIES')}
               onBrowseTimeline={() => setViewMode('TIMELINE')}
               onBrowsePeople={() => setViewMode('MEMORIES')}
-              onViewBio={() => setEditingFamilyBio(true)}
-              onAddMemory={() => setShowAddMemoryForm(true)}
               onExport={() => handleExportMemoryBook('ZIP', 'CLASSIC')}
             />
         )}
@@ -399,55 +295,6 @@ function App() {
             </div>
         )}
 
-        {editingFamilyBio && (
-            <div className="lightbox-overlay" onClick={() => setEditingFamilyBio(false)}>
-                <div className="card-modern p-10 bg-white shadow-2xl animate-slide-up" style={{ width: '700px', borderRadius: '20px' }} onClick={e => e.stopPropagation()}>
-                    <h4 className="h3 mb-8" style={{ fontFamily: 'var(--font-serif)' }}>Family Narrative</h4>
-                    <div className="mb-8">
-                        <label className="small fw-bold text-muted mb-3 d-block text-uppercase tracking-widest" style={{ fontSize: '0.6rem' }}>Universal Lineage Record</label>
-                        <textarea 
-                            className="form-control-modern w-100" 
-                            rows={10} 
-                            style={{ fontSize: '1.2rem', fontStyle: 'italic' }}
-                            placeholder="Detail the origin and overarching story of the family..."
-                            value={familyBio} 
-                            onChange={(e) => setFamilyBio(e.target.value)} 
-                        />
-                    </div>
-                    <div className="d-flex justify-content-end gap-3 pt-5 border-top">
-                        <button className="btn btn-secondary-modern" style={{ borderRadius: '8px' }} onClick={() => setEditingFamilyBio(false)}>Cancel</button>
-                        <button className="btn btn-primary-modern px-10" style={{ borderRadius: '8px' }} onClick={() => handleSaveFamilyBio(familyBio)}>Commit Narrative</button>
-                    </div>
-                </div>
-            </div>
-        )}
-
-        {viewingPerson && (
-            <div className="lightbox-overlay" onClick={() => setViewingPerson(null)}>
-                <div className="p-0 bg-white shadow-2xl overflow-hidden animate-slide-up" style={{ width: '600px', borderRadius: '20px' }} onClick={e => e.stopPropagation()}>
-                    <AddPersonForm 
-                        personToEdit={viewingPerson} 
-                        onSave={handleSavePerson} 
-                        onCancel={() => setViewingPerson(null)} 
-                    />
-                </div>
-            </div>
-        )}
-        {showAddPersonForm && (
-            <div className="lightbox-overlay" onClick={() => setShowAddPersonForm(false)}>
-                <div className="p-0 bg-white shadow-2xl overflow-hidden" style={{ width: '600px', borderRadius: '20px' }} onClick={e => e.stopPropagation()}>
-                    <AddPersonForm onSave={handleSavePerson} onCancel={() => setShowAddPersonForm(false)} />
-                </div>
-            </div>
-        )}
-        {showAddMemoryForm && (
-            <div className="lightbox-overlay" onClick={() => setShowAddMemoryForm(false)}>
-                <div className="p-0 bg-white shadow-2xl overflow-hidden" style={{ borderRadius: '20px' }} onClick={e => e.stopPropagation()}>
-                    <AddMemoryForm people={memoryTree.people} onAddMemories={handleAddMemories} onAddPerson={() => {}} onCancel={() => setShowAddMemoryForm(false)} />
-                </div>
-            </div>
-        )}
-        
         {selectedArtifact && (
             <ArtifactDeepView 
                 artifact={selectedArtifact} 

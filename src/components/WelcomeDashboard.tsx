@@ -9,8 +9,6 @@ interface WelcomeDashboardProps {
   onBrowseMemories: () => void;
   onBrowseTimeline: () => void;
   onBrowsePeople: () => void;
-  onViewBio: () => void;
-  onAddMemory: () => void;
   onExport: () => void;
 }
 
@@ -22,8 +20,6 @@ export const WelcomeDashboard: React.FC<WelcomeDashboardProps> = ({
   onBrowseMemories,
   onBrowseTimeline,
   onBrowsePeople,
-  onViewBio,
-  onAddMemory,
   onExport,
 }) => {
   const formatLastUpdated = (date: Date) => {
@@ -76,12 +72,9 @@ export const WelcomeDashboard: React.FC<WelcomeDashboardProps> = ({
       <section className="dashboard-primary-cta">
         <div className="cta-content">
           <h2>Begin Your Journey</h2>
-          <p>Explore the family archive. Discover stories. Add new memories.</p>
+          <p>Explore the family archive. Discover stories.</p>
         </div>
         <div className="cta-buttons">
-          <button className="btn btn-primary btn-lg" onClick={onAddMemory}>
-            Add New Artifact
-          </button>
           <button className="btn btn-secondary btn-lg" onClick={onExport}>
             Export Archive
           </button>
@@ -121,17 +114,6 @@ export const WelcomeDashboard: React.FC<WelcomeDashboardProps> = ({
             <p>Explore the family structure. View each member and their associated artifacts and memories.</p>
             <div className="browse-meta">
               <span>{totalPeople} members</span>
-              <span className="arrow">→</span>
-            </div>
-          </div>
-
-          {/* Family Bio */}
-          <div className="browse-card" onClick={onViewBio}>
-            <div className="browse-icon">◇</div>
-            <h3>Family Biography</h3>
-            <p>Read the comprehensive family story. The narrative that brings all artifacts and memories together.</p>
-            <div className="browse-meta">
-              <span>The chronicle</span>
               <span className="arrow">→</span>
             </div>
           </div>
