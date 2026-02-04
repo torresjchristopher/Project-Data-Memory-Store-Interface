@@ -92,7 +92,7 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
   if (!currentMemory && filteredMemories.length === 0) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center text-slate-700 font-serif italic">
-        Archive is empty or no results found.
+        Archive empty or no results found.
         <button onClick={() => { setSearchQuery(''); setFilterPerson(''); }} className="ml-4 underline text-white">Reset Filters</button>
       </div>
     );
@@ -137,7 +137,7 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
             </div>
             <div className="flex flex-col">
               <h1 className="text-xl font-serif font-bold text-white tracking-tighter uppercase italic">Schnitzelbank</h1>
-              <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.5em] -mt-1">Institutional Archive</span>
+              <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.5em] -mt-1">Institutional Archive ({tree.memories.length})</span>
             </div>
           </div>
 
@@ -253,9 +253,7 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
                   className="aspect-[3/4] bg-white/[0.02] border border-white/5 rounded-sm overflow-hidden cursor-pointer hover:border-white/40 transition-all duration-500 relative group"
                 >
                   <img src={m.photoUrl} className="w-full h-full object-cover opacity-40 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700 grayscale hover:grayscale-0" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
-                    <span className="text-white text-[10px] font-black uppercase tracking-widest italic truncate">{m.name}</span>
-                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent opacity-0 group-hover:opacity-100 flex items-end p-4 transition-opacity"><span className="text-white text-[10px] font-black uppercase tracking-widest italic truncate">{m.name}</span></div>
                 </motion.div>
               ))}
             </div>

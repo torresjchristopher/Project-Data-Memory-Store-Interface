@@ -67,7 +67,8 @@ export default function LandingPage({ onUnlock, itemCount = 0, error = null }: L
       {/* Subtle Sync Bar */}
       <motion.div 
         initial={{ opacity: 0 }}
-        animate={{ opacity: 0.3 }}
+        animate={{ opacity: 0.4 }}
+        transition={{ delay: 2, duration: 2 }}
         className="absolute bottom-10 flex flex-col items-center gap-2 text-white text-[8px] uppercase tracking-[0.4em] font-sans font-black text-center"
       >
         <div className="flex items-center gap-2">
@@ -87,6 +88,9 @@ export default function LandingPage({ onUnlock, itemCount = 0, error = null }: L
               Scanning Protocol...
             </div>
           )}
+        </div>
+        <div className="text-white/20 uppercase tracking-[0.3em]">
+          Murray Protocol // DB: schnitzelbank // Obsidian Edition
         </div>
       </motion.div>
 
