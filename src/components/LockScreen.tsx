@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Lock, ArrowRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Lock } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface LockScreenProps {
   onUnlock: () => void;
@@ -8,71 +9,75 @@ interface LockScreenProps {
 export function LockScreen({ onUnlock }: LockScreenProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
     if (password === 'Jackson_Heights') {
-      onUnlock();
+      setTimeout(() => onUnlock(), 500); // Subtle delay for effect
+    } else if (password.length > 0) {
+      setIsTyping(true);
+      setError(false);
     } else {
-      setError(true);
-      setPassword('');
+      setIsTyping(false);
     }
-  };
+  }, [password, onUnlock]);
 
   return (
-    <div className="min-h-screen bg-[#0a1120] flex items-center justify-center p-6 font-serif">
-      <div className="max-w-md w-full">
-        {/* Emblem */}
-        <div className="flex justify-center mb-12">
-          <div className="w-24 h-24 rounded-full border-4 border-[#c5a059]/20 flex items-center justify-center bg-[#0f172a] shadow-2xl">
-            <Lock className="w-10 h-10 text-[#c5a059]" />
-          </div>
+    <div className="min-h-screen bg-[#05080f] flex flex-col items-center justify-center relative overflow-hidden selection:bg-gold-500/30">
+      
+      {/* Ambient Background */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-900/5 via-transparent to-transparent pointer-events-none"></div>
+
+      {/* The Seal */}
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 1.5, ease: "easeOut" }}
+        className="mb-12 relative"
+      >
+        <div className={`w-16 h-16 rounded-full border border-[#c5a059]/20 flex items-center justify-center transition-all duration-700 ${isTyping ? 'border-[#c5a059]/60 shadow-[0_0_30px_rgba(197,160,89,0.15)]' : ''}`}>
+          <Lock className={`w-5 h-5 text-[#c5a059] transition-opacity duration-500 ${isTyping ? 'opacity-100' : 'opacity-60'}`} />
         </div>
+      </motion.div>
 
-        {/* Card */}
-        <div className="bg-[#0f172a] border border-[#c5a059]/30 p-10 rounded-sm shadow-[0_0_50px_rgba(0,0,0,0.5)] text-center relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#c5a059] to-[#8b6f36]"></div>
-          
-          <h1 className="text-3xl text-[#e2e8f0] mb-2 tracking-wide font-medium">SCHNITZELBANK</h1>
-          <p className="text-[#c5a059] text-xs uppercase tracking-[0.3em] mb-10 font-sans font-bold">Institutional Archive</p>
+      {/* Minimal Input */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5, duration: 1 }}
+        className="w-full max-w-xs relative"
+      >
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full bg-transparent border-b border-[#c5a059]/20 py-3 text-center text-[#c5a059] text-xl tracking-[0.5em] font-serif focus:outline-none focus:border-[#c5a059]/60 transition-all placeholder:text-[#c5a059]/10"
+          placeholder="••••••"
+          autoFocus
+        />
+        
+        {/* Error State */}
+        {error && (
+          <motion.p 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            className="absolute -bottom-8 left-0 right-0 text-center text-red-900/50 text-[10px] font-sans tracking-widest uppercase"
+          >
+            Access Restricted
+          </motion.p>
+        )}
+      </motion.div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="relative">
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  setError(false);
-                }}
-                placeholder="Enter Access Key"
-                className="w-full bg-[#0a1120] border border-[#c5a059]/30 px-6 py-4 text-[#e2e8f0] text-center focus:outline-none focus:border-[#c5a059] transition-colors placeholder:text-slate-700 font-sans tracking-widest text-lg"
-                autoFocus
-              />
-            </div>
+      {/* Footer / Branding */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.4 }}
+        transition={{ delay: 1.5, duration: 1 }}
+        className="absolute bottom-12 text-[#c5a059]/30 text-[9px] uppercase tracking-[0.4em] font-sans"
+      >
+        Schnitzelbank Archive
+      </motion.div>
 
-            {error && (
-              <p className="text-red-400 text-xs uppercase tracking-widest font-sans font-bold animate-pulse">
-                Access Denied
-              </p>
-            )}
-
-            <button
-              type="submit"
-              className="w-full bg-[#c5a059] hover:bg-[#8b6f36] text-[#0a1120] py-4 font-bold uppercase tracking-[0.2em] text-xs transition-all flex items-center justify-center gap-2 group font-sans"
-            >
-              Unlock Archive
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </button>
-          </form>
-        </div>
-
-        <div className="text-center mt-8">
-          <p className="text-slate-600 text-[10px] uppercase tracking-[0.2em] font-sans">
-            Secured by Murray Protocol v4.1
-          </p>
-        </div>
-      </div>
     </div>
   );
 }
