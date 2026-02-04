@@ -13,6 +13,7 @@ const MURRAY_PROTOCOL_KEY = "MURRAY_LEGACY_2026";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [memoryTree, setMemoryTree] = useState<MemoryTree>(() => {
     const cached = localStorage.getItem('schnitzel_snapshot');
     return cached ? JSON.parse(cached) : {
@@ -24,8 +25,6 @@ function App() {
   });
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-
     PersistenceService.getInstance();
 
     const unsub = subscribeToMemoryTree(MURRAY_PROTOCOL_KEY, (partial) => {
@@ -39,10 +38,14 @@ function App() {
         localStorage.setItem('schnitzel_snapshot', JSON.stringify(next));
         return next;
       });
+      setConnectionError(null); // Clear error on success
+    }, (error) => {
+      console.error('Firebase Sync Error:', error);
+      setConnectionError(error.message || 'Access Restricted');
     });
 
     return () => unsub();
-  }, [isAuthenticated]);
+  }, []);
 
   const handleExport = async (format: 'ZIP' | 'PDF') => {
     try {
@@ -70,7 +73,13 @@ function App() {
   };
 
   if (!isAuthenticated) {
-    return <LandingPage onUnlock={() => setIsAuthenticated(true)} itemCount={memoryTree.memories.length} />;
+    return (
+      <LandingPage 
+        onUnlock={() => setIsAuthenticated(true)} 
+        itemCount={memoryTree.memories.length} 
+        error={connectionError}
+      />
+    );
   }
 
   return (

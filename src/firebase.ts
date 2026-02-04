@@ -14,5 +14,6 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+// Connecting specifically to the 'schnitzelbank' database used by the Artifact CLI
+export const db = getFirestore(app, "schnitzelbank");
 export const storage = getStorage(app);

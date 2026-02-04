@@ -70,7 +70,8 @@ function toDate(value: unknown): Date {
  */
 export function subscribeToMemoryTree(
   protocolKey: string,
-  onUpdate: (partial: Partial<MemoryTree>) => void
+  onUpdate: (partial: Partial<MemoryTree>) => void,
+  onError?: (error: any) => void
 ): Unsubscribe {
   let memoryUnsubs: Unsubscribe[] = [];
   const memoriesByPerson = new Map<string, Memory[]>();
@@ -133,11 +134,18 @@ export function subscribeToMemoryTree(
           memoriesByPerson.set(person.id, memories);
           const combined = Array.from(memoriesByPerson.values()).flat();
           onUpdate({ memories: combined });
+        },
+        (err) => {
+          console.error(`Error subscribing to memories for ${person.id}:`, err);
+          if (onError) onError(err);
         }
       );
 
       memoryUnsubs.push(unsub);
     });
+  }, (err) => {
+    console.error('Error subscribing to people:', err);
+    if (onError) onError(err);
   });
 
   return () => {

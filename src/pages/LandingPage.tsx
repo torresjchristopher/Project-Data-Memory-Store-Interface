@@ -4,11 +4,11 @@ import { motion } from 'framer-motion';
 
 interface LandingPageProps {
   onUnlock: () => void;
-  isConnected?: boolean;
   itemCount?: number;
+  error?: string | null;
 }
 
-export default function LandingPage({ onUnlock, isConnected = true, itemCount = 0 }: LandingPageProps) {
+export default function LandingPage({ onUnlock, itemCount = 0, error = null }: LandingPageProps) {
   const [password, setPassword] = useState('');
   const [isTyping, setIsTyping] = useState(false);
 
@@ -23,7 +23,7 @@ export default function LandingPage({ onUnlock, isConnected = true, itemCount = 
   }, [password, onUnlock]);
 
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center relative overflow-hidden selection:bg-white/10">
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center relative overflow-hidden selection:bg-white/20">
       
       {/* Background Texture */}
       <div className="absolute inset-0 bg-noise opacity-40 pointer-events-none z-0"></div>
@@ -71,22 +71,22 @@ export default function LandingPage({ onUnlock, isConnected = true, itemCount = 
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.4 }}
         transition={{ delay: 2, duration: 2 }}
-        className="absolute bottom-12 flex flex-col items-center gap-4 text-white text-[9px] uppercase tracking-[0.5em] font-sans font-black"
+        className="absolute bottom-12 flex flex-col items-center gap-4 text-white text-[9px] uppercase tracking-[0.5em] font-sans font-black text-center"
       >
         <div className="flex items-center gap-3">
-          {isConnected ? (
+          {error ? (
+            <div className="flex items-center gap-2 text-red-500/60 font-bold">
+              <CloudOff className="w-2 h-2" />
+              {error}
+            </div>
+          ) : (
             <div className="flex items-center gap-2 text-emerald-500/60">
               <span className="w-1 h-1 rounded-full bg-current animate-pulse"></span>
               Synchronized // {itemCount} Fragments Loaded
             </div>
-          ) : (
-            <div className="flex items-center gap-2 text-red-500/60 font-bold">
-              <CloudOff className="w-2 h-2" />
-              Connection Latency
-            </div>
           )}
         </div>
-        <div className="text-white/20">Murray Legacy Protocol // Institutional Edition</div>
+        <div className="text-white/20">Murray Legacy Protocol // Obsidian Edition</div>
       </motion.div>
 
     </div>
