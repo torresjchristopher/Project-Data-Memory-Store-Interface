@@ -69,24 +69,15 @@ function App() {
     }
   };
 
+  if (!isAuthenticated) {
+    return <LandingPage onUnlock={() => setIsAuthenticated(true)} itemCount={memoryTree.memories.length} />;
+  }
+
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={
-          !isAuthenticated ? (
-            <LandingPage onUnlock={() => setIsAuthenticated(true)} />
-          ) : (
-            <Navigate to="/archive" replace />
-          )
-        } />
-        <Route path="/archive" element={
-          isAuthenticated ? (
-            <ImmersiveGallery tree={memoryTree} onExport={handleExport} />
-          ) : (
-            <Navigate to="/" replace />
-          )
-        } />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/archive" element={<ImmersiveGallery tree={memoryTree} onExport={handleExport} />} />
+        <Route path="*" element={<Navigate to="/archive" replace />} />
       </Routes>
     </BrowserRouter>
   );
