@@ -15,7 +15,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// Connecting to the 'schnitzelbank' named database required for CLI parity
-// Note: If you are using the default database, this should be (default) or omitted.
-export const db = getFirestore(app, "schnitzelbank");
+// Switching to Default Database to ensure maximum compatibility
+export const db = getFirestore(app);
 export const storage = getStorage(app);
