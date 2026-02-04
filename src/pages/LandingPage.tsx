@@ -1,96 +1,96 @@
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Lock } from 'lucide-react';
-import type { MemoryTree } from '../types';
+import { useState, useEffect } from 'react';
+import { Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface LandingPageProps {
-  tree: MemoryTree;
+  onUnlock: () => void;
 }
 
-export default function LandingPage({ tree }: LandingPageProps) {
-  const navigate = useNavigate();
+export default function LandingPage({ onUnlock }: LandingPageProps) {
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+
+  useEffect(() => {
+    if (password === 'Jackson_Heights') {
+      // Success animation delay
+      setTimeout(() => onUnlock(), 800);
+    } else if (password.length > 0) {
+      setIsTyping(true);
+      setError(false);
+    } else {
+      setIsTyping(false);
+    }
+  }, [password, onUnlock]);
 
   return (
-    <div className="min-h-screen bg-presidential-900 text-presidential-100 font-serif overflow-hidden relative selection:bg-presidential-500/30">
+    <div className="min-h-screen bg-[#05080f] flex flex-col items-center justify-center relative overflow-hidden selection:bg-[#c5a059]/30">
       
-      {/* Background Texture */}
-      <div className="absolute inset-0 bg-noise opacity-20 pointer-events-none z-0"></div>
-      
-      {/* Subtle Ambient Light */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-presidential-600/10 rounded-full blur-[120px] pointer-events-none z-0"></div>
+      {/* Background Texture & Glow */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-900/5 via-transparent to-transparent pointer-events-none"></div>
+      <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
 
-      {/* Navigation (Minimal) */}
-      <nav className="fixed top-0 w-full z-50 px-12 py-8 flex justify-between items-center mix-blend-overlay">
-        <div className="text-xs font-sans font-bold tracking-[0.3em] uppercase text-presidential-400 opacity-80">
-          Murray Legacy Protocol
+      {/* The Seal */}
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 1.5, ease: "easeOut" }}
+        className="mb-16 relative"
+      >
+        <div className={`w-20 h-20 rounded-full border border-[#c5a059]/20 flex items-center justify-center transition-all duration-1000 ${isTyping ? 'border-[#c5a059]/60 shadow-[0_0_40px_rgba(197,160,89,0.1)]' : ''}`}>
+          <Lock className={`w-6 h-6 text-[#c5a059] transition-opacity duration-500 ${isTyping ? 'opacity-100' : 'opacity-60'}`} />
         </div>
-        <div className="text-xs font-sans font-bold tracking-[0.3em] uppercase text-presidential-100 opacity-60">
-          Est. 2026
-        </div>
-      </nav>
+      </motion.div>
 
-      {/* Main Content */}
-      <main className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6 text-center">
+      {/* Title */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3, duration: 1 }}
+        className="text-center mb-12"
+      >
+        <h1 className="text-3xl font-serif text-white tracking-widest uppercase mb-2">Schnitzelbank</h1>
+        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.4em]">Restricted Archive Access</p>
+      </motion.div>
+
+      {/* Minimal Input */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.6, duration: 1 }}
+        className="w-full max-w-xs relative"
+      >
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full bg-transparent border-b border-[#c5a059]/20 py-3 text-center text-[#c5a059] text-xl tracking-[0.5em] font-serif focus:outline-none focus:border-[#c5a059]/60 transition-all placeholder:text-[#c5a059]/10"
+          placeholder="••••••"
+          autoFocus
+        />
         
-        {/* Emblem / Seal */}
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1.2, ease: "easeOut" }}
-          className="mb-12"
-        >
-          <div className="w-24 h-24 rounded-full border border-presidential-500/30 flex items-center justify-center relative">
-            <div className="absolute inset-0 rounded-full border border-presidential-500/10 scale-125"></div>
-            <Lock className="w-8 h-8 text-presidential-500 opacity-80" />
-          </div>
-        </motion.div>
-
-        {/* Title */}
-        <motion.h1 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.3 }}
-          className="text-5xl md:text-7xl lg:text-8xl font-medium tracking-tight mb-6 text-presidential-50"
-        >
-          The {tree.familyName || "Murray"} <br/>
-          <span className="italic text-presidential-400">Archive</span>
-        </motion.h1>
-
-        {/* Subtitle */}
-        <motion.p 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1, delay: 0.6 }}
-          className="max-w-2xl text-lg md:text-xl text-presidential-100/60 font-sans font-light leading-relaxed mb-16 tracking-wide"
-        >
-          A sovereign digital repository preserving {tree.memories.length} artifacts and the lineage of {tree.people.length} subjects.
-          Secured by high-caliber encryption.
-        </motion.p>
-
-        {/* Access Button */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.8 }}
-        >
-          <button 
-            onClick={() => navigate('/app')}
-            className="group relative px-12 py-5 bg-transparent border border-presidential-500/30 hover:border-presidential-500 text-presidential-50 font-sans text-xs font-bold uppercase tracking-[0.2em] transition-all duration-500"
+        {/* Error State */}
+        {error && (
+          <motion.p 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            className="absolute -bottom-8 left-0 right-0 text-center text-red-900/50 text-[10px] font-sans tracking-widest uppercase"
           >
-            <span className="absolute inset-0 bg-presidential-500/0 group-hover:bg-presidential-500/5 transition-all duration-500"></span>
-            <span className="flex items-center gap-4">
-              Enter The Archive
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-500 text-presidential-500" />
-            </span>
-          </button>
-        </motion.div>
-
-      </main>
+            Access Denied
+          </motion.p>
+        )}
+      </motion.div>
 
       {/* Footer */}
-      <footer className="absolute bottom-0 w-full p-8 flex justify-center text-[10px] font-sans font-medium tracking-[0.2em] text-presidential-700 uppercase">
-        Restricted Access • Institutional Use Only
-      </footer>
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.3 }}
+        transition={{ delay: 1.5, duration: 1 }}
+        className="absolute bottom-12 text-[#c5a059] text-[9px] uppercase tracking-[0.4em] font-sans"
+      >
+        Murray Legacy Protocol v4.1
+      </motion.div>
+
     </div>
   );
 }

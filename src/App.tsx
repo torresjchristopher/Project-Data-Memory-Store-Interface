@@ -7,8 +7,7 @@ import { ExportService } from './services/ExportService';
 import { MemoryBookPdfService } from './services/MemoryBookPdfService';
 import { subscribeToMemoryTree } from './services/TreeSubscriptionService';
 import LandingPage from './pages/LandingPage';
-import MainApp from './pages/MainApp';
-import { LockScreen } from './components/LockScreen';
+import ImmersiveGallery from './pages/ImmersiveGallery';
 
 const MURRAY_PROTOCOL_KEY = "MURRAY_LEGACY_2026";
 
@@ -59,7 +58,7 @@ function App() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `Murray_Family_${format}_${new Date().toISOString().split('T')[0]}.${format.toLowerCase()}`;
+      link.download = `Murray_Archive_${format}_${new Date().toISOString().split('T')[0]}.${format.toLowerCase()}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -70,15 +69,23 @@ function App() {
     }
   };
 
-  if (!isAuthenticated) {
-    return <LockScreen onUnlock={() => setIsAuthenticated(true)} />;
-  }
-
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<LandingPage tree={memoryTree} />} />
-        <Route path="/app" element={<MainApp tree={memoryTree} onExport={handleExport} />} />
+        <Route path="/" element={
+          !isAuthenticated ? (
+            <LandingPage onUnlock={() => setIsAuthenticated(true)} />
+          ) : (
+            <Navigate to="/archive" replace />
+          )
+        } />
+        <Route path="/archive" element={
+          isAuthenticated ? (
+            <ImmersiveGallery tree={memoryTree} onExport={handleExport} />
+          ) : (
+            <Navigate to="/" replace />
+          )
+        } />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
