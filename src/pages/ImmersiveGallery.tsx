@@ -8,7 +8,9 @@ import {
   X,
   FileArchive,
   Grid,
-  Maximize2
+  Maximize2,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 import type { MemoryTree } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -26,6 +28,7 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
   const [showCli, setShowCli] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterPerson, setFilterPerson] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   
   const uiTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -88,6 +91,23 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [filteredMemories.length, showCli]);
+
+  const toggleSelect = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const downloadSelected = () => {
+    // In a real implementation, this would zip the selected ones
+    // For now, we'll just trigger the global export or alert
+    if (selectedIds.size === 0) return;
+    onExport('ZIP');
+  };
 
   if (!currentMemory && filteredMemories.length === 0) {
     return (
@@ -165,6 +185,11 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
           </div>
 
           <div className="pointer-events-auto flex gap-4">
+            {selectedIds.size > 0 && (
+              <button onClick={downloadSelected} className="flex items-center gap-2 px-4 bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600/30 transition-all">
+                Download {selectedIds.size}
+              </button>
+            )}
             <button onClick={() => setViewMode(viewMode === 'grid' ? 'theatre' : 'grid')} className="p-3.5 bg-white/5 hover:bg-white/10 rounded-full transition-all border border-white/5" title="Toggle Mode">
               {viewMode === 'grid' ? <Maximize2 className="w-4 h-4 text-white" /> : <Grid className="w-4 h-4 text-white" />}
             </button>
@@ -250,10 +275,31 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                   transition={{ delay: idx * 0.02 }}
                   onClick={() => { setCurrentIndex(idx); setViewMode('theatre'); }}
-                  className="aspect-[3/4] bg-white/[0.02] border border-white/5 rounded-sm overflow-hidden cursor-pointer hover:border-white/40 transition-all duration-500 relative group"
+                  className={`aspect-[3/4] bg-white/[0.02] border rounded-sm overflow-hidden cursor-pointer hover:border-white/40 transition-all duration-500 relative group ${selectedIds.has(m.id) ? 'border-emerald-500/50 scale-95' : 'border-white/5'}`}
                 >
                   <img src={m.photoUrl} className="w-full h-full object-cover opacity-40 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700 grayscale hover:grayscale-0" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent opacity-0 group-hover:opacity-100 flex items-end p-4 transition-opacity"><span className="text-white text-[10px] font-black uppercase tracking-widest italic truncate">{m.name}</span></div>
+                  
+                  {/* Selection Overlay */}
+                  <div 
+                    onClick={(e) => toggleSelect(e, m.id)}
+                    className="absolute top-3 right-3 p-2 bg-black/60 rounded-lg hover:bg-white/10 transition-colors z-20"
+                  >
+                    {selectedIds.has(m.id) ? <CheckSquare className="w-4 h-4 text-emerald-400" /> : <Square className="w-4 h-4 text-white/20" />}
+                  </div>
+
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent opacity-0 group-hover:opacity-100 flex items-end p-4 transition-opacity">
+                    <div className="flex justify-between items-center w-full">
+                      <span className="text-white text-[10px] font-black uppercase tracking-widest italic truncate">{m.name}</span>
+                      <a 
+                        href={m.photoUrl} 
+                        download 
+                        onClick={e => e.stopPropagation()}
+                        className="p-1.5 hover:text-emerald-400 transition-colors"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
+                  </div>
                 </motion.div>
               ))}
             </div>
