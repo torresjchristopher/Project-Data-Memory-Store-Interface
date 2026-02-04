@@ -1,143 +1,108 @@
-import { Download, Terminal, Code2, CheckCircle, Zap } from 'lucide-react';
+import React from 'react';
+import { 
+  Download, 
+  Terminal, 
+  Cpu, 
+  HardDrive, 
+  ShieldCheck, 
+  Zap, 
+  Code,
+  ArrowRight,
+  Monitor
+} from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function ArtifactCliTab() {
+  const specs = [
+    { label: 'Runtime', value: 'Python 3.11+', icon: Cpu },
+    { label: 'Footprint', value: '15MB RSS', icon: Monitor },
+    { label: 'Storage', value: 'Zero Latency', icon: HardDrive },
+    { label: 'Security', value: 'VaultZero', icon: ShieldCheck },
+  ];
+
+  const features = [
+    { title: 'Batch Ingestion', desc: 'Process and upload thousands of artifacts with automated metadata analysis.', icon: Zap },
+    { title: 'Rich TUI', desc: 'Interactive terminal interface built for rapid navigation and bulk management.', icon: Terminal },
+    { title: 'Universal Support', desc: 'Native binaries for Windows, macOS, and Linux with zero external dependencies.', icon: Code },
+  ];
+
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-8">
-      <div className="mb-12">
-        <h1 className="text-3xl font-bold text-slate-50 mb-2">Artifact CLI</h1>
-        <p className="text-slate-50/60">Command-line interface for managing your family archive</p>
-      </div>
-
-      {/* Installation */}
-      <div className="mb-12">
-        <h2 className="text-2xl font-bold text-slate-50 mb-6">Installation</h2>
-        
-        <div className="p-6 rounded-lg border border-slate-700 bg-slate-900 mb-6">
-          <div className="flex items-start gap-2 mb-4">
-            <Terminal className="w-5 h-5 text-blue-400 flex-shrink-0 mt-1" />
-            <div>
-              <p className="font-semibold text-slate-50 mb-2">macOS / Linux</p>
-              <code className="block p-3 rounded bg-slate-950/50 text-green-400 font-mono text-sm overflow-x-auto">
-                curl -L https://artifact.schnitzel.dev/install.sh | bash
-              </code>
-            </div>
+    <div className="container mx-auto px-6 py-12">
+      {/* Hero Section */}
+      <div className="flex flex-col lg:flex-row gap-16 items-center mb-32">
+        <div className="flex-1 space-y-8 text-center lg:text-left">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-[0.2em] italic">
+            Enterprise Command Line Tooling
           </div>
-        </div>
-
-        <div className="p-6 rounded-lg border border-slate-700 bg-slate-900 mb-6">
-          <div className="flex items-start gap-2 mb-4">
-            <Terminal className="w-5 h-5 text-blue-400 flex-shrink-0 mt-1" />
-            <div>
-              <p className="font-semibold text-slate-50 mb-2">Windows (PowerShell)</p>
-              <code className="block p-3 rounded bg-slate-950/50 text-green-400 font-mono text-sm overflow-x-auto">
-                iwr -useb https://artifact.schnitzel.dev/install.ps1 | iex
-              </code>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-6 rounded-lg border border-slate-700 bg-slate-900">
-          <div className="flex items-start gap-2 mb-4">
-            <Terminal className="w-5 h-5 text-blue-400 flex-shrink-0 mt-1" />
-            <div>
-              <p className="font-semibold text-slate-50 mb-2">npm (All Platforms)</p>
-              <code className="block p-3 rounded bg-slate-950/50 text-green-400 font-mono text-sm overflow-x-auto">
-                npm install -g @schnitzel/artifact-cli
-              </code>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Features */}
-      <div className="mb-12">
-        <h2 className="text-2xl font-bold text-slate-50 mb-6">Features</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {[
-            { title: 'Upload Archives', desc: 'Batch upload family memories from your computer' },
-            { title: 'Organize Media', desc: 'Tag, categorize, and organize your media files' },
-            { title: 'Backup Management', desc: 'Create and manage encrypted backups' },
-            { title: 'Data Export', desc: 'Export archives in ZIP, PDF, or JSON formats' },
-            { title: 'Metadata Tools', desc: 'Add and edit metadata like dates and people tags' },
-            { title: 'Sync Across Devices', desc: 'Keep your archive synchronized across all devices' },
-          ].map((feature, idx) => (
-            <div key={idx} className="p-6 rounded-lg border border-slate-700 bg-slate-900">
-              <div className="flex items-start gap-3">
-                <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-1" />
-                <div>
-                  <h3 className="font-semibold text-slate-50 mb-1">{feature.title}</h3>
-                  <p className="text-sm text-slate-50/60">{feature.desc}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Commands */}
-      <div className="mb-12">
-        <h2 className="text-2xl font-bold text-slate-50 mb-6">Common Commands</h2>
-        
-        <div className="space-y-4">
-          {[
-            { cmd: 'artifact --version', desc: 'Show CLI version' },
-            { cmd: 'artifact init', desc: 'Initialize a new archive' },
-            { cmd: 'artifact upload <path>', desc: 'Upload media files' },
-            { cmd: 'artifact organize', desc: 'Organize and deduplicate media' },
-            { cmd: 'artifact export --format zip', desc: 'Export archive as ZIP' },
-            { cmd: 'artifact sync', desc: 'Synchronize with cloud' },
-            { cmd: 'artifact backup create', desc: 'Create an encrypted backup' },
-            { cmd: 'artifact help', desc: 'Show help information' },
-          ].map((item, idx) => (
-            <div key={idx} className="p-4 rounded-lg border border-slate-700 bg-slate-900/50 hover:border-blue-500 transition-colors">
-              <code className="text-blue-400 font-mono text-sm">{item.cmd}</code>
-              <p className="text-sm text-slate-50/60 mt-2">{item.desc}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* System Requirements */}
-      <div className="p-6 rounded-lg border border-slate-700 bg-slate-900/50">
-        <h3 className="text-lg font-semibold text-slate-50 mb-4 flex items-center gap-2">
-          <Zap className="w-5 h-5 text-yellow-400" />
-          System Requirements
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-slate-50/70">
-          <div>
-            <span className="font-semibold text-slate-50">Node.js:</span> 18.0 or higher
-          </div>
-          <div>
-            <span className="font-semibold text-slate-50">RAM:</span> 512MB minimum
-          </div>
-          <div>
-            <span className="font-semibold text-slate-50">Disk:</span> 1GB free space
-          </div>
-          <div>
-            <span className="font-semibold text-slate-50">OS:</span> macOS, Linux, Windows
-          </div>
-        </div>
-      </div>
-
-      {/* Documentation */}
-      <div className="mt-8 p-6 rounded-lg border border-blue-500/30 bg-blue-500/5">
-        <div className="flex items-start gap-3">
-          <Code2 className="w-5 h-5 text-blue-400 flex-shrink-0 mt-1" />
-          <div>
-            <h3 className="font-semibold text-slate-50 mb-2">Full Documentation</h3>
-            <p className="text-sm text-slate-50/70 mb-4">
-              Visit the official documentation for detailed guides, examples, and advanced configuration options.
-            </p>
-            <a
-              href="https://docs.schnitzel.dev/cli"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors border border-blue-500/50"
-            >
-              <Download className="w-4 h-4" />
-              View Documentation
+          <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter leading-tight italic uppercase">
+            Artifact <span className="text-blue-500 underline decoration-white/10 underline-offset-8">CLI.</span>
+          </h1>
+          <p className="text-xl text-slate-400 font-medium leading-relaxed italic max-w-2xl">
+            The professional grade interface for high-volume artifact ingestion. Bridge your local memory stores with the Schnitzelbank cloud instantly.
+          </p>
+          <div className="flex flex-wrap gap-4 justify-center lg:justify-start pt-4">
+            <a href="/downloads/artifact-cli-v1.0.zip" className="px-10 py-5 bg-white text-slate-950 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:scale-105 transition-all shadow-xl shadow-white/10 italic">
+              Download Latest Release
             </a>
+            <a href="https://github.com/torresjchristopher/artifact-cli" target="_blank" className="px-10 py-5 bg-slate-900 border border-white/10 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-white/5 transition-all italic">
+              View Source
+            </a>
+          </div>
+        </div>
+
+        {/* Dynamic Spec Panel */}
+        <div className="w-full max-w-md">
+          <div className="bg-slate-900 border border-white/10 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-600"></div>
+            <h3 className="text-white font-black text-lg uppercase italic tracking-[0.2em] mb-10">Technical Specifications</h3>
+            <div className="grid grid-cols-1 gap-8">
+              {specs.map((spec) => (
+                <div key={spec.label} className="flex items-center justify-between border-b border-white/5 pb-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center">
+                      <spec.icon className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{spec.label}</span>
+                  </div>
+                  <span className="text-white font-black italic">{spec.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Feature Grid */}
+      <div className="grid md:grid-cols-3 gap-12 mb-32">
+        {features.map((f) => (
+          <div key={f.title} className="space-y-6 group">
+            <div className="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-500/20 group-hover:bg-blue-500/20 transition-all">
+              <f.icon className="w-7 h-7 text-blue-400" />
+            </div>
+            <h4 className="text-2xl font-black text-white uppercase italic tracking-tighter">{f.title}</h4>
+            <p className="text-slate-500 text-sm font-medium italic leading-relaxed">{f.desc}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* OS Matrix */}
+      <div className="bg-slate-900/50 border border-white/5 rounded-[3rem] p-12 md:p-20 text-center">
+        <h2 className="text-3xl font-black text-white mb-16 uppercase italic tracking-[0.2em]">Deployment Matrix</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+          <div className="space-y-4">
+            <div className="text-xs font-black text-blue-500 uppercase tracking-[0.3em]">Microsoft</div>
+            <div className="text-2xl font-black text-white italic">Windows 10/11</div>
+            <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Native .exe supported</div>
+          </div>
+          <div className="space-y-4 border-x border-white/5">
+            <div className="text-xs font-black text-purple-500 uppercase tracking-[0.3em]">Apple</div>
+            <div className="text-2xl font-black text-white italic">macOS 12+</div>
+            <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">M1/M2/Intel Silicon</div>
+          </div>
+          <div className="space-y-4">
+            <div className="text-xs font-black text-emerald-500 uppercase tracking-[0.3em]">Open Source</div>
+            <div className="text-2xl font-black text-white italic">Linux Kernel 5.4+</div>
+            <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Debian/RHEL/Arch</div>
           </div>
         </div>
       </div>

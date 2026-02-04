@@ -1,369 +1,218 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Filter, X, Zap } from 'lucide-react';
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  X, 
+  Download, 
+  Calendar, 
+  User, 
+  Info,
+  Maximize2,
+  Filter
+} from 'lucide-react';
 import type { MemoryTree, Memory } from '../../types';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface GalleryTabProps {
   tree: MemoryTree;
   onExport: (format: 'ZIP' | 'PDF') => void;
 }
 
-type SortOption = 'latest' | 'oldest' | 'name-asc' | 'name-desc';
-type FilterType = 'all' | 'image' | 'video' | 'document';
-
-interface Filters {
-  type: FilterType;
-  personIds: string[];
-  dateRange: [string | null, string | null];
-  tags: string[];
-}
-
-export default function GalleryTab({ tree }: GalleryTabProps) {
-  const [sort, setSort] = useState<SortOption>('latest');
-  const [filters, setFilters] = useState<Filters>({
-    type: 'all',
-    personIds: [],
-    dateRange: [null, null],
-    tags: [],
-  });
-  const [showFilters, setShowFilters] = useState(false);
+export default function GalleryTab({ tree, onExport }: GalleryTabProps) {
   const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null);
+  const [activeFilter, setActiveTab] = useState<'all' | 'image' | 'video' | 'document'>('all');
 
-  const allTags = useMemo(() => {
-    const tags = new Set<string>();
-    tree.memories.forEach(m => {
-      m.tags.customTags?.forEach((t: string) => tags.add(t));
-    });
-    return Array.from(tags).sort();
-  }, [tree.memories]);
-
-  const filteredAndSorted = useMemo(() => {
-    let results = [...tree.memories];
-
-    if (filters.type !== 'all') {
-      results = results.filter(m => m.type === filters.type);
-    }
-
-    if (filters.personIds.length > 0) {
-      results = results.filter(m =>
-        filters.personIds.some(pid => m.tags.personIds.includes(pid))
-      );
-    }
-
-    if (filters.tags.length > 0) {
-      results = results.filter(m =>
-        filters.tags.some(tag => m.tags.customTags?.includes(tag))
-      );
-    }
-
-    if (filters.dateRange[0] || filters.dateRange[1]) {
-      const [startStr, endStr] = filters.dateRange;
-      const start = startStr ? new Date(startStr).getTime() : 0;
-      const end = endStr ? new Date(endStr).getTime() : Infinity;
-      results = results.filter(m => {
-        const date = new Date(m.date).getTime();
-        return date >= start && date <= end;
-      });
-    }
-
-    results.sort((a, b) => {
-      switch (sort) {
-        case 'latest':
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
-        case 'oldest':
-          return new Date(a.date).getTime() - new Date(b.date).getTime();
-        case 'name-asc':
-          return a.name.localeCompare(b.name);
-        case 'name-desc':
-          return b.name.localeCompare(a.name);
-        default:
-          return 0;
-      }
-    });
-
-    return results;
-  }, [tree.memories, filters, sort]);
+  const filteredMemories = useMemo(() => {
+    if (activeFilter === 'all') return tree.memories;
+    return tree.memories.filter(m => m.type === activeFilter);
+  }, [tree.memories, activeFilter]);
 
   const handleKeyDown = (e: KeyboardEvent) => {
     if (!selectedMemory) return;
-    
-    const imageMemories = filteredAndSorted.filter(m => m.type === 'image');
-    const currentIndex = imageMemories.findIndex(m => m.id === selectedMemory.id);
+    const items = filteredMemories;
+    const idx = items.findIndex(m => m.id === selectedMemory.id);
 
-    if (e.key === 'ArrowLeft' && currentIndex > 0) {
-      setSelectedMemory(imageMemories[currentIndex - 1]);
-    } else if (e.key === 'ArrowRight' && currentIndex < imageMemories.length - 1) {
-      setSelectedMemory(imageMemories[currentIndex + 1]);
-    } else if (e.key === 'Escape') {
-      setSelectedMemory(null);
-    }
+    if (e.key === 'ArrowLeft' && idx > 0) setSelectedMemory(items[idx - 1]);
+    else if (e.key === 'ArrowRight' && idx < items.length - 1) setSelectedMemory(items[idx + 1]);
+    else if (e.key === 'Escape') setSelectedMemory(null);
   };
 
   React.useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedMemory, filteredAndSorted]);
-
-  const togglePersonFilter = (personId: string) => {
-    setFilters(prev => ({
-      ...prev,
-      personIds: prev.personIds.includes(personId)
-        ? prev.personIds.filter(p => p !== personId)
-        : [...prev.personIds, personId]
-    }));
-  };
-
-  const toggleTagFilter = (tag: string) => {
-    setFilters(prev => ({
-      ...prev,
-      tags: prev.tags.includes(tag)
-        ? prev.tags.filter(t => t !== tag)
-        : [...prev.tags, tag]
-    }));
-  };
-
-  const clearFilters = () => {
-    setFilters({
-      type: 'all',
-      personIds: [],
-      dateRange: [null, null],
-      tags: [],
-    });
-  };
-
-  const hasActiveFilters = 
-    filters.type !== 'all' ||
-    filters.personIds.length > 0 ||
-    filters.tags.length > 0 ||
-    filters.dateRange[0] ||
-    filters.dateRange[1];
+  }, [selectedMemory, filteredMemories]);
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-8">
-      {/* Controls */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-50 mb-1">Gallery</h1>
-          <p className="text-slate-50/60">{filteredAndSorted.length} items</p>
+    <div className="min-h-screen bg-slate-950 text-slate-200">
+      {/* Gallery Header */}
+      <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col md:flex-row justify-between items-end gap-8">
+        <div className="space-y-2">
+          <div className="text-blue-500 font-black text-xs uppercase tracking-[0.4em] mb-4">Enterprise Archive</div>
+          <h1 className="text-5xl font-black text-white tracking-tighter italic">GALLERY.</h1>
+          <p className="text-slate-500 font-medium italic">Curated artifacts from the {tree.familyName} collection.</p>
         </div>
-
-        <div className="flex gap-2 flex-wrap">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
-              hasActiveFilters
-                ? 'border-blue-500 bg-blue-500/10 text-blue-400'
-                : 'border-slate-700 text-slate-50/60 hover:text-slate-50'
-            }`}
-          >
-            <Filter className="w-4 h-4" />
-            Filters
-          </button>
-
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value as SortOption)}
-            className="px-4 py-2 rounded-lg border border-slate-700 bg-slate-950 text-slate-50 hover:border-foreground/50 transition-colors"
-          >
-            <option value="latest">Latest</option>
-            <option value="oldest">Oldest</option>
-            <option value="name-asc">Name (A-Z)</option>
-            <option value="name-desc">Name (Z-A)</option>
-          </select>
+        
+        <div className="flex bg-slate-900 border border-white/5 p-1 rounded-2xl">
+          {(['all', 'image', 'video', 'document'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setActiveTab(t)}
+              className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                activeFilter === t ? 'bg-white text-slate-950 shadow-xl' : 'text-slate-500 hover:text-white'
+              }`}
+            >
+              {t}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Filters Panel */}
-      {showFilters && (
-        <div className="mb-8 p-6 rounded-lg border border-slate-700 bg-slate-900">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-semibold text-slate-50">Filters</h3>
-            {hasActiveFilters && (
-              <button
-                onClick={clearFilters}
-                className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                Clear All
-              </button>
-            )}
-          </div>
-
-          <div className="space-y-4">
-            {/* Type Filter */}
-            <div>
-              <label className="text-sm text-slate-50/70 block mb-2">Type</label>
-              <div className="flex gap-2 flex-wrap">
-                {(['all', 'image', 'video', 'document'] as FilterType[]).map(type => (
-                  <button
-                    key={type}
-                    onClick={() => setFilters(prev => ({ ...prev, type }))}
-                    className={`px-3 py-1 rounded-full text-sm transition-colors ${
-                      filters.type === type
-                        ? 'bg-blue-500 text-white'
-                        : 'border border-slate-700 text-slate-50/60 hover:text-slate-50'
-                    }`}
-                  >
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* People Filter */}
-            <div>
-              <label className="text-sm text-slate-50/70 block mb-2">People</label>
-              <div className="flex gap-2 flex-wrap">
-                {tree.people.map(person => (
-                  <button
-                    key={person.id}
-                    onClick={() => togglePersonFilter(person.id)}
-                    className={`px-3 py-1 rounded-full text-sm transition-colors ${
-                      filters.personIds.includes(person.id)
-                        ? 'bg-purple-500 text-white'
-                        : 'border border-slate-700 text-slate-50/60 hover:text-slate-50'
-                    }`}
-                  >
-                    {person.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Tags Filter */}
-            {allTags.length > 0 && (
-              <div>
-                <label className="text-sm text-slate-50/70 block mb-2">Tags</label>
-                <div className="flex gap-2 flex-wrap">
-                  {allTags.map(tag => (
-                    <button
-                      key={tag}
-                      onClick={() => toggleTagFilter(tag)}
-                      className={`px-3 py-1 rounded-full text-sm transition-colors ${
-                        filters.tags.includes(tag)
-                          ? 'bg-indigo-500 text-white'
-                          : 'border border-slate-700 text-slate-50/60 hover:text-slate-50'
-                      }`}
-                    >
-                      {tag}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Gallery Grid */}
-      {filteredAndSorted.length === 0 ? (
-        <div className="text-center py-16">
-          <p className="text-slate-50/60 mb-4">No items match your filters</p>
-          <button
-            onClick={clearFilters}
-            className="text-blue-400 hover:text-blue-300 transition-colors"
-          >
-            Clear filters
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredAndSorted.map((memory) => (
-            <div
+      {/* Masonry-style Grid */}
+      <div className="max-w-7xl mx-auto px-6 pb-24">
+        <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 space-y-6">
+          {filteredMemories.map((memory, i) => (
+            <motion.div
               key={memory.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.02 }}
               onClick={() => setSelectedMemory(memory)}
-              className="group cursor-pointer rounded-lg overflow-hidden border border-slate-700 hover:border-blue-500 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20"
+              className="group relative bg-slate-900 border border-white/5 rounded-3xl overflow-hidden cursor-pointer hover:border-blue-500/50 transition-all duration-500 break-inside-avoid"
             >
-              {memory.type === 'image' && memory.photoUrl && (
-                <div className="aspect-square overflow-hidden bg-foreground/10">
+              {memory.photoUrl ? (
+                <div className="relative aspect-auto overflow-hidden">
                   <img
                     src={memory.photoUrl}
                     alt={memory.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-700"
                   />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-4 group-hover:translate-y-0">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-white italic">{memory.name}</span>
+                    <Maximize2 className="w-4 h-4 text-white" />
+                  </div>
+                </div>
+              ) : (
+                <div className="aspect-square flex items-center justify-center bg-slate-800/50">
+                  <Info className="w-12 h-12 text-slate-700" />
                 </div>
               )}
-              {memory.type === 'video' && (
-                <div className="aspect-square bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center">
-                  <Zap className="w-8 h-8 text-yellow-400" />
-                </div>
-              )}
-              {memory.type === 'document' && (
-                <div className="aspect-square bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center">
-                  <span className="text-lg font-semibold text-slate-50">DOC</span>
-                </div>
-              )}
-              
-              <div className="p-3 bg-slate-900 border-t border-slate-700">
-                <p className="font-semibold text-slate-50 truncate">{memory.name}</p>
-                <p className="text-sm text-slate-50/60 mt-1">
-                  {new Date(memory.date).toLocaleDateString()}
-                </p>
-              </div>
-            </div>
+            </motion.div>
           ))}
         </div>
-      )}
+      </div>
 
-      {/* Lightbox */}
-      {selectedMemory && selectedMemory.type === 'image' && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center"
-          onClick={() => setSelectedMemory(null)}
-        >
-          <div className="relative w-full h-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
-            <button
-              onClick={() => setSelectedMemory(null)}
-              className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-lg transition-colors z-10"
-            >
-              <X className="w-6 h-6" />
-            </button>
+      {/* High-Resolution Lightbox */}
+      <AnimatePresence>
+        {selectedMemory && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-2xl flex flex-col md:flex-row"
+          >
+            {/* Main Visual Area */}
+            <div className="flex-1 relative flex items-center justify-center p-8 md:p-12 overflow-hidden">
+              <button
+                onClick={() => setSelectedMemory(null)}
+                className="absolute top-8 left-8 p-4 hover:bg-white/10 rounded-full transition-colors z-50 group"
+              >
+                <X className="w-6 h-6 text-white group-hover:scale-110 transition-transform" />
+              </button>
 
-            {selectedMemory.photoUrl && (
-              <img
-                src={selectedMemory.photoUrl}
-                alt={selectedMemory.name}
-                className="max-w-full max-h-full object-contain"
-              />
-            )}
+              <AnimatePresence mode='wait'>
+                <motion.img
+                  key={selectedMemory.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.05 }}
+                  src={selectedMemory.photoUrl}
+                  alt={selectedMemory.name}
+                  className="max-w-full max-h-full object-contain shadow-2xl rounded-lg"
+                />
+              </AnimatePresence>
 
-            {/* Navigation arrows */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                const images = filteredAndSorted.filter(m => m.type === 'image');
-                const currentIdx = images.findIndex(m => m.id === selectedMemory.id);
-                if (currentIdx > 0) {
-                  setSelectedMemory(images[currentIdx - 1]);
-                }
-              }}
-              className="absolute left-4 p-2 hover:bg-white/10 rounded-lg transition-colors"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </button>
-
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                const images = filteredAndSorted.filter(m => m.type === 'image');
-                const currentIdx = images.findIndex(m => m.id === selectedMemory.id);
-                if (currentIdx < images.length - 1) {
-                  setSelectedMemory(images[currentIdx + 1]);
-                }
-              }}
-              className="absolute right-4 p-2 hover:bg-white/10 rounded-lg transition-colors"
-            >
-              <ChevronRight className="w-6 h-6" />
-            </button>
-
-            {/* Image info */}
-            <div className="absolute bottom-4 left-4 right-4 bg-black/50 backdrop-blur-md p-4 rounded-lg">
-              <h3 className="font-semibold text-white">{selectedMemory.name}</h3>
-              <p className="text-sm text-white/70 mt-1">
-                {new Date(selectedMemory.date).toLocaleDateString()}
-              </p>
+              {/* Navigation */}
+              <div className="absolute inset-y-0 left-0 flex items-center px-4">
+                <button 
+                  onClick={() => {
+                    const idx = filteredMemories.findIndex(m => m.id === selectedMemory.id);
+                    if (idx > 0) setSelectedMemory(filteredMemories[idx - 1]);
+                  }}
+                  className="p-4 hover:bg-white/10 rounded-full text-white/50 hover:text-white transition-all"
+                >
+                  <ChevronLeft className="w-10 h-10" />
+                </button>
+              </div>
+              <div className="absolute inset-y-0 right-0 flex items-center px-4">
+                <button 
+                  onClick={() => {
+                    const idx = filteredMemories.findIndex(m => m.id === selectedMemory.id);
+                    if (idx < filteredMemories.length - 1) setSelectedMemory(filteredMemories[idx + 1]);
+                  }}
+                  className="p-4 hover:bg-white/10 rounded-full text-white/50 hover:text-white transition-all"
+                >
+                  <ChevronRight className="w-10 h-10" />
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+
+            {/* Technical Metadata Sidebar */}
+            <div className="w-full md:w-[400px] bg-slate-900 border-l border-white/5 p-10 flex flex-col justify-between overflow-y-auto">
+              <div className="space-y-12">
+                <div>
+                  <div className="text-blue-500 font-black text-[10px] uppercase tracking-[0.5em] mb-4">Metadata Analysis</div>
+                  <h2 className="text-4xl font-black text-white tracking-tighter italic mb-4">{selectedMemory.name}</h2>
+                  <p className="text-slate-400 text-sm font-medium italic leading-relaxed">
+                    {selectedMemory.description || "No description provided for this artifact."}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-8">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3 text-slate-500">
+                      <Calendar className="w-4 h-4" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">Capture Date</span>
+                    </div>
+                    <div className="text-white font-bold italic">{new Date(selectedMemory.date).toLocaleDateString(undefined, { dateStyle: 'full' })}</div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 text-slate-500">
+                      <User className="w-4 h-4" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">Connected People</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedMemory.tags.personIds.map(pid => {
+                        const person = tree.people.find(p => p.id === pid);
+                        return (
+                          <span key={pid} className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-xl text-xs font-black text-blue-400 italic uppercase">
+                            {person?.name || "Unknown"}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-12 space-y-4">
+                <a
+                  href={selectedMemory.photoUrl}
+                  download={selectedMemory.name}
+                  className="flex items-center justify-center gap-3 w-full py-4 bg-white text-slate-950 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-[1.02] transition-all"
+                >
+                  <Download className="w-4 h-4" />
+                  Download Artifact
+                </a>
+                <div className="text-center text-[9px] font-black text-slate-600 uppercase tracking-widest italic">
+                  Yukora Sovereign Invisibility Guaranteed
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
