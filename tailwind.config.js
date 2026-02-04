@@ -8,67 +8,49 @@ export default {
   theme: {
     extend: {
       colors: {
-        navy: {
-          950: '#020617',
-          900: '#0a1120',
-          800: '#1e293b',
-          700: '#334155',
+        presidential: {
+          950: '#020408', // Void
+          900: '#0B1221', // Deepest Navy
+          800: '#152036', // Deep Navy
+          700: '#24344D', // Light Navy
+          600: '#3A4F6B', // Slate Blue
+          500: '#C5A059', // Gold Leaf (Primary Accent)
+          400: '#D4B473', // Light Gold
+          300: '#E3C892', // Pale Gold
+          100: '#F1F5F9', // Off White / Cream
+          50: '#F8FAFC',  // Paper White
         },
-        gold: {
-          400: '#fbbf24',
-          500: '#c5a059',
-          600: '#b48a3e',
-        },
-        cream: {
-          50: '#f8fafc',
-          100: '#f1f5f9',
-        },
-        background: '#000000',
-        foreground: '#ffffff',
-        primary: '#FFC700',
-        'primary-foreground': '#ffffff',
-        border: '#424242',
-        card: '#1a1a1a',
-        'card-foreground': '#ffffff',
-        secondary: '#666666',
-        'secondary-foreground': '#ffffff',
-        muted: '#808080',
-        'muted-foreground': '#cccccc',
-        accent: '#FFC700',
-        'accent-foreground': '#000000',
-        input: '#1a1a1a',
-        ring: '#FFC700',
-        destructive: '#ef4444',
-        'destructive-foreground': '#fca5a5',
+        background: '#0B1221',
+        foreground: '#F1F5F9',
       },
       fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
-        mono: ['Fira Code', 'Courier New', 'monospace'],
+        serif: ['Playfair Display', 'serif'],
+        sans: ['Lato', 'sans-serif'],
       },
-      borderRadius: {
-        lg: '0.5rem',
-        md: '0.375rem',
-        sm: '0.25rem',
+      backgroundImage: {
+        'noise': "url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDUiLz4KPC9zdmc+')",
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
       },
       animation: {
-        'fade-in': 'fade-in 0.5s ease-out',
-        'slide-up': 'slide-up 0.5s ease-out',
-        'glow': 'glow 2s ease-in-out infinite',
+        'fade-in': 'fadeIn 1s ease-out forwards',
+        'fade-in-slow': 'fadeIn 2s ease-out forwards',
+        'slide-up': 'slideUp 0.8s ease-out forwards',
+        'ken-burns': 'kenBurns 20s ease-in-out infinite alternate',
       },
       keyframes: {
-        'fade-in': {
+        fadeIn: {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
         },
-        'slide-up': {
-          '0%': { transform: 'translateY(10px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' },
+        slideUp: {
+          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
         },
-        'glow': {
-          '0%, 100%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.5)' },
-          '50%': { boxShadow: '0 0 30px rgba(59, 130, 246, 0.8)' },
-        },
-      },
+        kenBurns: {
+          '0%': { transform: 'scale(1)' },
+          '100%': { transform: 'scale(1.1)' },
+        }
+      }
     },
   },
   plugins: [],
