@@ -94,7 +94,7 @@ export default function LandingPage({ onUnlock, itemCount = 0, error = null }: L
           </div>
         )}
         <div className="text-white/10 uppercase tracking-[0.3em] font-black">
-          Murray Protocol // DB: schnitzelbank // Obsidian Edition
+          Murray Protocol // DB: Schnitzel Bank // Obsidian Edition
         </div>
       </motion.div>
 
