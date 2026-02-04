@@ -11,6 +11,14 @@ interface LandingPageProps {
 export default function LandingPage({ onUnlock, itemCount = 0, error = null }: LandingPageProps) {
   const [password, setPassword] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isTimedOut, setIsTimedOut] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (itemCount === 0 && !error) setIsTimedOut(true);
+    }, 30000); 
+    return () => clearTimeout(timer);
+  }, [itemCount, error]);
 
   useEffect(() => {
     if (password === 'Jackson_Heights') {
@@ -49,8 +57,8 @@ export default function LandingPage({ onUnlock, itemCount = 0, error = null }: L
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full bg-transparent border-none py-2 text-center text-white text-lg tracking-[0.4em] font-serif focus:ring-0 focus:outline-none placeholder:text-white/5 transition-all duration-700"
-          placeholder="••••••"
+          className="w-full bg-transparent border-none py-2 text-center text-white text-xl tracking-[0.2em] focus:ring-0 focus:outline-none placeholder:text-white/5 transition-all duration-700 font-mono"
+          placeholder="PASSWORD"
           autoFocus
         />
         <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-[0.5px] bg-white/20 transition-all duration-1000 ${isTyping ? 'w-full opacity-40' : 'w-0 opacity-0'}`}></div>
@@ -62,30 +70,30 @@ export default function LandingPage({ onUnlock, itemCount = 0, error = null }: L
         animate={{ opacity: 0.4 }}
         className="absolute bottom-10 flex flex-col items-center gap-2 text-white text-[8px] uppercase tracking-[0.4em] font-sans font-black text-center px-6"
       >
-        {error ? (
+        {error || isTimedOut ? (
           <div className="flex flex-col items-center gap-2 text-red-500/80 bg-red-500/5 p-4 rounded-lg border border-red-500/10">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-3 h-3" />
               <span>Diagnostic Warning</span>
             </div>
-            <div className="font-mono text-[7px] max-w-xs">{error}</div>
+            <div className="font-mono text-[7px] max-w-xs">{error || 'Protocol Timeout (Verify Rules/Database)'}</div>
           </div>
         ) : (
           <div className="flex items-center gap-2">
             {itemCount > 0 ? (
-              <div className="flex items-center gap-1.5 text-emerald-500/40">
+              <div className="flex items-center gap-1.5 text-emerald-500/40 font-bold tracking-widest">
                 <span className="w-1 h-1 rounded-full bg-current animate-pulse"></span>
                 {itemCount} Fragments Active
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 text-white/10">
+              <div className="flex items-center gap-1.5 text-white/10 font-bold tracking-widest">
                 <Loader2 className="w-2 h-2 animate-spin" />
                 Scanning Protocol...
               </div>
             )}
           </div>
         )}
-        <div className="text-white/10 uppercase tracking-[0.3em]">
+        <div className="text-white/10 uppercase tracking-[0.3em] font-black">
           Murray Protocol // DB: schnitzelbank // Obsidian Edition
         </div>
       </motion.div>
