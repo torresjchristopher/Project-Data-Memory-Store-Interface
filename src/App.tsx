@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import { PersistenceService } from './services/PersistenceService';
 import type { MemoryTree } from './types';
@@ -84,12 +84,12 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route path="/archive" element={<ImmersiveGallery tree={memoryTree} onExport={handleExport} />} />
         <Route path="*" element={<Navigate to="/archive" replace />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
