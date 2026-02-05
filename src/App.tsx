@@ -74,23 +74,21 @@ function App() {
     }
   };
 
-  if (!isAuthenticated) {
-    return (
-      <LandingPage 
-        onUnlock={() => setIsAuthenticated(true)} 
-        itemCount={memoryTree.memories.length} 
-        error={connectionError}
-      />
-    );
-  }
-
   return (
     <HashRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/archive" replace />} />
-        <Route path="/archive" element={<ImmersiveGallery tree={memoryTree} onExport={handleExport} />} />
-        <Route path="*" element={<Navigate to="/archive" replace />} />
-      </Routes>
+      {!isAuthenticated ? (
+        <LandingPage 
+          onUnlock={() => setIsAuthenticated(true)} 
+          itemCount={memoryTree.memories.length} 
+          error={connectionError}
+        />
+      ) : (
+        <Routes>
+          <Route path="/" element={<Navigate to="/archive" replace />} />
+          <Route path="/archive" element={<ImmersiveGallery tree={memoryTree} onExport={handleExport} />} />
+          <Route path="*" element={<Navigate to="/archive" replace />} />
+        </Routes>
+      )}
     </HashRouter>
   );
 }
