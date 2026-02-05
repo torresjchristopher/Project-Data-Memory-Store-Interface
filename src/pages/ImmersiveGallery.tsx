@@ -16,7 +16,6 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
   // --- STATE ---
   const [currentIndex, setCurrentIndex] = useState(0);
   const [viewMode, setViewMode] = useState<'theatre' | 'grid'>('theatre');
-  const [gridDensity, setGridDensity] = useState<2 | 8 | 12>(8);
   const [showUi, setShowUi] = useState(true);
   const [showCli, setShowCli] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
