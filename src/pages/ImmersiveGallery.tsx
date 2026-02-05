@@ -45,8 +45,8 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
     const fp = filterPerson;
 
     return (localMemories || []).filter(m => {
-      // 1. Security & Existence
-      if (!m || (!m.photoUrl && !m.fileUrl)) return false;
+      // 1. Basic Safety
+      if (!m || !m.photoUrl) return false;
 
       // 2. Strict Dropdown Filter
       const personIds = m.tags?.personIds || [];
