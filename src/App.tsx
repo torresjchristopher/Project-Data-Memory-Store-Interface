@@ -15,8 +15,23 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [memoryTree, setMemoryTree] = useState<MemoryTree>(() => {
-    const cached = localStorage.getItem('schnitzel_snapshot');
-    return cached ? JSON.parse(cached) : {
+    try {
+      const cached = localStorage.getItem('schnitzel_snapshot');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        return {
+          protocolKey: MURRAY_PROTOCOL_KEY,
+          familyName: 'The Murray Family',
+          people: Array.isArray(parsed.people) ? parsed.people : [],
+          memories: Array.isArray(parsed.memories) ? parsed.memories : [],
+        };
+      }
+    } catch (e) {
+      console.error("Snapshot corruption detected, resetting...", e);
+      localStorage.removeItem('schnitzel_snapshot');
+    }
+    
+    return {
       protocolKey: MURRAY_PROTOCOL_KEY,
       familyName: 'The Murray Family',
       people: [],

@@ -12,6 +12,7 @@ export default function LandingPage({ onUnlock, itemCount = 0, error = null }: L
   const [password, setPassword] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isTimedOut, setIsTimedOut] = useState(false);
+  const safeItemCount = typeof itemCount === 'number' ? itemCount : 0;
 
   // Auto-skip logic for Autofill or Fast Typing
   useEffect(() => {
@@ -86,10 +87,10 @@ export default function LandingPage({ onUnlock, itemCount = 0, error = null }: L
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            {itemCount > 0 ? (
+            {safeItemCount > 0 ? (
               <div className="flex items-center gap-1.5 text-emerald-500/40 tracking-widest">
                 <span className="w-1 h-1 rounded-full bg-current animate-pulse"></span>
-                {itemCount} Active Fragments
+                {safeItemCount} Active Fragments
               </div>
             ) : (
               <div className="flex items-center gap-1.5 text-white/10 tracking-widest italic">
