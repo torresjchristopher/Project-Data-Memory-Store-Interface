@@ -55,7 +55,7 @@ function App() {
         blob = await MemoryBookPdfService.generateMemoryBook(memoryTree, memoryTree.familyName);
       } else {
         const exportService = ExportService.getInstance();
-        blob = await exportService.exportAsZip(memoryTree, '', { includeMedia: true });
+        blob = await exportService.exportAsZip(memoryTree, '');
       }
 
       const url = URL.createObjectURL(blob);
