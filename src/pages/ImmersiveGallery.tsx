@@ -190,20 +190,22 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
           </div>
 
           <div className="pointer-events-auto flex gap-4">
-            {viewMode === 'grid' && (
-              <div className="flex items-center bg-black/40 border border-white/5 rounded-full px-3 py-1 gap-3">
-                {[2, 4, 8, 12].map(d => (
-                  <button 
-                    key={d} 
-                    onClick={() => setGridDensity(d as any)}
-                    className={`text-[9px] font-black transition-all ${gridDensity === d ? 'text-white' : 'text-white/20 hover:text-white/40'}`}
-                  >
-                    {d}
-                  </button>
-                ))}
-              </div>
-            )}
-            <button onClick={() => setViewMode(viewMode === 'grid' ? 'theatre' : 'grid')} className="p-3.5 bg-white/5 hover:bg-white/10 rounded-full border border-white/5 transition-all">
+            <button 
+              onClick={() => {
+                if (viewMode === 'theatre') {
+                  setViewMode('grid');
+                  setGridDensity(2);
+                } else if (gridDensity === 2) {
+                  setGridDensity(8);
+                } else if (gridDensity === 8) {
+                  setGridDensity(12);
+                } else {
+                  setViewMode('theatre');
+                }
+              }} 
+              className="p-3.5 bg-white/5 hover:bg-white/10 rounded-full border border-white/5 transition-all"
+              title={viewMode === 'theatre' ? "Switch to Grid (2)" : gridDensity === 12 ? "Switch to Theatre" : `Switch to Grid (${gridDensity === 2 ? 8 : 12})`}
+            >
               {viewMode === 'grid' ? <Maximize2 className="w-4 h-4 text-white" /> : <Grid className="w-4 h-4 text-white" />}
             </button>
             <button onClick={() => setShowCli(true)} className="p-3.5 bg-white/5 hover:bg-white/10 rounded-full border border-white/5 transition-all"><Terminal className="w-4 h-4 text-white" /></button>
