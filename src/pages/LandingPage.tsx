@@ -43,7 +43,9 @@ export default function LandingPage({ onUnlock, itemCount = 0, error = null }: L
         className="mb-12 relative"
       >
         <div className={`w-16 h-16 rounded-full border border-white/5 flex items-center justify-center transition-all duration-1000 ${isTyping ? 'border-white/20 shadow-[0_0_40px_rgba(255,255,255,0.02)]' : ''}`}>
-          <Lock className={`w-4 h-4 text-white transition-opacity duration-1000 ${isTyping ? 'opacity-100' : 'opacity-10'}`} />
+          <div className="w-10 h-10 rounded-full border border-white/5 flex items-center justify-center">
+            <Lock className={`w-3 h-3 text-white transition-opacity duration-1000 ${isTyping ? 'opacity-100' : 'opacity-10'}`} />
+          </div>
         </div>
       </motion.div>
 
@@ -57,8 +59,8 @@ export default function LandingPage({ onUnlock, itemCount = 0, error = null }: L
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full bg-transparent border-none py-2 text-center text-white text-xl tracking-[0.2em] focus:ring-0 focus:outline-none placeholder:text-white/5 transition-all duration-700 font-mono"
-          placeholder="PASSWORD"
+          className="w-full bg-transparent border-none py-2 text-center text-white text-lg tracking-[0.4em] font-serif focus:ring-0 focus:outline-none placeholder:text-white/5 transition-all duration-700 font-mono"
+          placeholder="••••••"
           autoFocus
         />
         <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-[0.5px] bg-white/20 transition-all duration-1000 ${isTyping ? 'w-full opacity-40' : 'w-0 opacity-0'}`}></div>
@@ -94,7 +96,7 @@ export default function LandingPage({ onUnlock, itemCount = 0, error = null }: L
           </div>
         )}
         <div className="text-white/10 uppercase tracking-[0.3em] font-black">
-          Murray Protocol // DB: Schnitzel Bank // Obsidian Edition
+          The Murray Family Protocol // Schnitzel Bank // Obsidian Edition
         </div>
       </motion.div>
 
