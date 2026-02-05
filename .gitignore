@@ -1,38 +1,34 @@
 # Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
 node_modules
 dist
 dist-ssr
 *.local
+.env
+.env.*
+!.env.example
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# Vercel
+.vercel
+
+# IDEs
+.vscode/
+.idea/
 .DS_Store
 *.suo
-*.ntvs*
-*.njsproj
-*.sln
 *.sw?
 
-# Local ad-hoc screenshots (repo root only)
-/Screenshot*.png
+# Build artifacts
+docs/
 
-# Repository-root ad-hoc media (keep /public/assets allowed)
+# Images & Media
 /*.png
 /*.jpg
 /*.jpeg
+/*.gif
+/*.ico
+/*.pdf
+/*.zip
 
-# Local scratch (never commit)
-/docs/_local/
-
-# Local scratch (never commit)
-/docs/_local/
+# Temporary files
+*.bak
+*.tmp
