@@ -14,6 +14,7 @@ const MURRAY_PROTOCOL_KEY = "MURRAY_LEGACY_2026";
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [initError, setInitError] = useState<string | null>(null);
   const [memoryTree, setMemoryTree] = useState<MemoryTree>(() => {
     try {
       const cached = localStorage.getItem('schnitzel_snapshot');
@@ -40,7 +41,12 @@ function App() {
   });
 
   useEffect(() => {
-    PersistenceService.getInstance();
+    try {
+      PersistenceService.getInstance();
+    } catch (e) {
+      console.error('Persistence Init Failed:', e);
+      setInitError('Vault Access Failed');
+    }
 
     const unsub = subscribeToMemoryTree(MURRAY_PROTOCOL_KEY, (partial) => {
       console.log('[FIREBASE] Sync Update received:', Object.keys(partial));
@@ -88,6 +94,25 @@ function App() {
       alert('Export failed. Please try again.');
     }
   };
+
+  // Emergency Recovery UI
+  if (initError) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-12 text-center">
+        <div className="w-12 h-12 rounded-full border border-red-500/50 flex items-center justify-center mb-8">
+          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+        </div>
+        <h1 className="text-white font-serif italic text-2xl mb-4">Vault Communication Failure</h1>
+        <p className="text-white/40 text-sm max-w-xs mb-8">The archive encountered a fatal initialization error. This usually happens when the browser's local database is restricted.</p>
+        <button 
+          onClick={() => { localStorage.clear(); window.location.reload(); }}
+          className="px-8 py-3 bg-white text-black text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
+        >
+          Reset Local Node
+        </button>
+      </div>
+    );
+  }
 
   return (
     <HashRouter>
