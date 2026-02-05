@@ -99,6 +99,22 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
     };
   }, [viewMode, editingField]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (showCli || editingField) return;
+      if (e.key === 'ArrowLeft') {
+        setTransitionDuration(0.2);
+        setCurrentIndex(prev => (prev - 1 + filteredMemories.length) % filteredMemories.length);
+      }
+      if (e.key === 'ArrowRight') {
+        setTransitionDuration(0.2);
+        setCurrentIndex(prev => (prev + 1) % filteredMemories.length);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [filteredMemories.length, showCli, editingField]);
+
   // --- RENDER SAFETY WRAPPER ---
   try {
     if (!currentMemory && filteredMemories.length === 0) {
@@ -158,22 +174,25 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
           </motion.header>
 
           {viewMode === 'theatre' && currentMemory && (
-            <div className="flex-1 relative flex items-center justify-center">
+            <div className="flex-1 relative flex items-center justify-center overflow-hidden">
               <AnimatePresence mode="wait">
-                <motion.div key={currentMemory.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: transitionDuration }} className="relative z-10 w-full h-full flex items-center justify-center p-6 md:p-24">
-                  <img src={currentMemory.photoUrl} className="max-w-full max-h-full object-contain shadow-2xl rounded-sm border border-white/5" />
-                  <motion.div animate={{ y: showUi ? 0 : 100, opacity: showUi ? 1 : 0 }} className="absolute bottom-12 left-1/2 -translate-x-1/2 pointer-events-auto">
-                    <div onClick={() => setIsFlipped(!isFlipped)} className="bg-black/80 backdrop-blur-3xl border border-white/10 px-8 py-6 rounded-sm text-center cursor-pointer min-w-[280px]">
-                      {!isFlipped ? (
-                        <>
-                          <div className="text-[8px] font-black text-white/30 uppercase tracking-[0.4em] mb-2 italic">Ref. {currentIndex + 1} // ERA {new Date(currentMemory.date || Date.now()).getFullYear()}</div>
-                          <div className="text-xl font-serif italic text-white tracking-widest truncate">{currentMemory.name}</div>
-                        </>
-                      ) : (
-                        <p className="text-xs font-serif italic text-white/80 leading-relaxed">{currentMemory.description || "No specific metadata note."}</p>
-                      )}
-                    </div>
-                  </motion.div>
+                <motion.div key={currentMemory.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: transitionDuration }} className="relative z-10 w-full h-full flex items-center justify-center p-12 md:p-24">
+                  <div className="relative flex items-center justify-center w-full h-full max-h-[85vh]">
+                    <img src={currentMemory.photoUrl} className="max-w-[90vw] max-h-full object-contain shadow-2xl rounded-sm border border-white/5" />
+                    
+                    <motion.div animate={{ y: showUi ? 0 : 100, opacity: showUi ? 1 : 0 }} className="absolute -bottom-12 left-1/2 -translate-x-1/2 pointer-events-auto z-20">
+                      <div onClick={() => setIsFlipped(!isFlipped)} className="bg-black/80 backdrop-blur-3xl border border-white/10 px-8 py-6 rounded-sm text-center cursor-pointer min-w-[320px] shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+                        {!isFlipped ? (
+                          <>
+                            <div className="text-[8px] font-black text-white/30 uppercase tracking-[0.4em] mb-2 italic">Ref. {currentIndex + 1} // ERA {new Date(currentMemory.date || Date.now()).getFullYear()}</div>
+                            <div className="text-xl font-serif italic text-white tracking-widest truncate max-w-[400px]">{currentMemory.name}</div>
+                          </>
+                        ) : (
+                          <p className="text-xs font-serif italic text-white/80 leading-relaxed max-w-[400px]">{currentMemory.description || "No specific metadata note available."}</p>
+                        )}
+                      </div>
+                    </motion.div>
+                  </div>
                 </motion.div>
               </AnimatePresence>
               <button onClick={() => { setTransitionDuration(0.2); setCurrentIndex(p => (p - 1 + filteredMemories.length) % filteredMemories.length); }} className="absolute left-8 top-1/2 -translate-y-1/2 p-6 text-white/10 hover:text-white pointer-events-auto"><ChevronLeft className="w-16 h-16 stroke-[0.5]" /></button>

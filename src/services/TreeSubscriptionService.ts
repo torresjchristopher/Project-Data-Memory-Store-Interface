@@ -33,6 +33,9 @@ export function subscribeToMemoryTree(
   const globalUnsub = onSnapshot(collection(db, 'trees', protocolKey, 'memories'), (snap) => {
     const memories = snap.docs.map(m => {
       const d = m.data();
+      // ROBUST MAPPING: Capture photoUrl from any possible field name
+      const photoUrl = d.downloadUrl || d.url || d.fileUrl || d.photoUrl || d.imageUrl || d.src || d.PhotoUrl || d.Image || d.File;
+      
       return {
         id: m.id,
         name: d.name || d.fileName || d.title || 'Artifact',
@@ -40,7 +43,7 @@ export function subscribeToMemoryTree(
         content: d.content || d.text || d.body || '',
         location: d.location || d.place || d.loc || '',
         type: inferMemoryType(d.name || d.fileName || d.contentType || ''),
-        photoUrl: d.downloadUrl || d.url || d.fileUrl || d.photoUrl || d.imageUrl || d.src || '',
+        photoUrl: photoUrl || '',
         date: d.date || d.timestamp?.toDate?.()?.toISOString() || d.createdAt || new Date().toISOString(),
         tags: d.tags || { personIds: [FAMILY_ROOT_ID], isFamilyMemory: true },
       } as Memory;
@@ -69,6 +72,8 @@ export function subscribeToMemoryTree(
         (memSnap) => {
           const memories = memSnap.docs.map((m) => {
             const d = m.data();
+            const photoUrl = d.downloadUrl || d.url || d.fileUrl || d.photoUrl || d.imageUrl || d.src || d.PhotoUrl || d.Image || d.File;
+
             return {
               id: m.id,
               name: d.name || d.fileName || d.title || 'Artifact',
@@ -76,7 +81,7 @@ export function subscribeToMemoryTree(
               content: d.content || d.text || d.body || '',
               location: d.location || d.place || d.loc || '',
               type: inferMemoryType(d.name || d.fileName || d.contentType || ''),
-              photoUrl: d.downloadUrl || d.url || d.fileUrl || d.photoUrl || d.imageUrl || d.src || '',
+              photoUrl: photoUrl || '',
               date: d.date || d.timestamp?.toDate?.()?.toISOString() || d.createdAt || new Date().toISOString(),
               tags: d.tags || { personIds: [person.id], isFamilyMemory: false },
             } as Memory;
