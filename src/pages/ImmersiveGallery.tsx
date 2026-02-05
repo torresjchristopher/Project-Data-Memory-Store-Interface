@@ -24,7 +24,7 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
   const [isFlipped, setIsFlipped] = useState(false);
   const [transitionDuration, setTransitionDuration] = useState(0.2);
   
-  // Local renaming state
+  // Local state for renaming/metadata
   const [overrides, setOverrides] = useState<Record<string, { name?: string, date?: string }>>({});
   const [editingField, setEditingField] = useState<{ id: string, field: 'name' | 'year' } | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -32,7 +32,7 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
   const uiTimeoutRef = useRef<any>(null);
   const autoCycleIntervalRef = useRef<any>(null);
 
-  // --- LOGIC ---
+  // --- LOGIC: DATA MAPPING ---
   const localMemories = useMemo(() => {
     return (tree?.memories || []).map(m => ({
       ...m,
@@ -41,85 +41,78 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
     }));
   }, [tree?.memories, overrides]);
 
+  // --- ULTIMATE SEARCH & FILTER ---
   const filteredMemories = useMemo(() => {
     try {
       const q = searchQuery.toLowerCase().trim();
       
-      // 1. Identify ALL people matching the query
-      const matchingPeopleIds = (tree?.people || [])
-        .filter(p => p.name?.toLowerCase().includes(q))
-        .map(p => p.id);
-      
-      // 2. Identify ALL tags matching the query
-      const allTags = new Set<string>();
-      (tree?.memories || []).forEach(m => {
-        if (m.tags?.customTags) {
-          m.tags.customTags.forEach(t => allTags.add(t.toLowerCase()));
-        }
-      });
-      const matchingTags = Array.from(allTags).filter(t => t.includes(q));
-
       return (localMemories || [])
-        .filter(m => !!m.photoUrl)
+        .filter(m => !!m.photoUrl) // Must have an image
         .filter(m => {
           const personIds = m.tags?.personIds || [];
           const customTags = (m.tags?.customTags || []).map(t => t.toLowerCase());
           
-          // Dropdown filter: If a person is selected, we ONLY show their memories.
-          // Search then further eliminates from that set.
-          const matchPersonDropdown = !filterPerson || personIds.includes(filterPerson);
+          // 1. Dropdown Filter (Strict)
+          // If 'FAMILY_ROOT' or empty is selected, show all. Otherwise filter by ID.
+          const isRoot = !filterPerson || filterPerson === 'FAMILY_ROOT';
+          const matchPersonDropdown = isRoot || personIds.includes(filterPerson);
           if (!matchPersonDropdown) return false;
           
           if (!q) return true;
 
-          // BROAD OR SEARCH (Eliminatory)
-          const nameMatch = m.name?.toLowerCase().includes(q);
-          const descMatch = m.description?.toLowerCase().includes(q);
-          const contentMatch = m.content?.toLowerCase().includes(q);
-          const locationMatch = m.location?.toLowerCase().includes(q);
+          // 2. Broad Eliminatory Search (Match EVERYTHING)
+          const name = (m.name || '').toLowerCase();
+          const desc = (m.description || '').toLowerCase();
+          const content = (m.content || '').toLowerCase();
+          const loc = (m.location || '').toLowerCase();
+          const yr = m.date ? new Date(m.date).getFullYear().toString() : '';
           
-          let yearMatch = false;
-          try {
-            if (m.date) {
-              const yr = new Date(m.date).getFullYear();
-              if (!isNaN(yr)) yearMatch = yr.toString().includes(q);
-            }
-          } catch(e) {}
+          // Match matching people names
+          const peopleNames = personIds.map(pid => 
+            tree?.people?.find(p => p.id === pid)?.name?.toLowerCase() || ''
+          );
 
-          const personNameMatch = personIds.some(pid => matchingPeopleIds.includes(pid));
-          const tagMatch = customTags.some(t => matchingTags.includes(t));
-          
-          return nameMatch || descMatch || contentMatch || locationMatch || yearMatch || personNameMatch || tagMatch;
+          // Combined search string for "Eliminatory" logic
+          const hayStack = [
+            name, desc, content, loc, yr,
+            ...customTags,
+            ...peopleNames
+          ].join(' ');
+
+          return hayStack.includes(q);
         });
     } catch (err) {
-      console.error("Filter Error:", err);
+      console.error("Filter/Search Error:", err);
       return [];
     }
   }, [localMemories, filterPerson, searchQuery, tree?.people, tree?.memories]);
 
   const currentMemory = filteredMemories[currentIndex] || null;
 
+  // Sync index if list shrinks
   useEffect(() => {
-    if (currentIndex >= filteredMemories.length && filteredMemories.length > 0) setCurrentIndex(0);
+    if (currentIndex >= filteredMemories.length && filteredMemories.length > 0) {
+      setCurrentIndex(0);
+    }
   }, [filteredMemories.length, currentIndex]);
 
-  // AUTO-CYCLE LOGIC (10s Idle)
+  // --- INTERACTION: AUTO-CYCLE ---
   useEffect(() => {
-    const startAutoCycle = () => {
+    const startCycle = () => {
       if (autoCycleIntervalRef.current) clearInterval(autoCycleIntervalRef.current);
       autoCycleIntervalRef.current = setInterval(() => {
-        // Only auto-cycle if UI is hidden AND no one is editing
+        // ONLY cycle if UI is hidden, in theatre mode, and NOT editing
         if (viewMode === 'theatre' && !showUi && filteredMemories.length > 1 && !editingField) {
-          setTransitionDuration(1.5); 
+          setTransitionDuration(1.5); // Slower, more eloquent transition
           setCurrentIndex(prev => (prev + 1) % filteredMemories.length);
         }
       }, 10000);
     };
-
-    startAutoCycle();
+    startCycle();
     return () => { if (autoCycleIntervalRef.current) clearInterval(autoCycleIntervalRef.current); };
   }, [showUi, viewMode, filteredMemories.length, editingField]);
 
+  // --- INTERACTION: UI VISIBILITY ---
   useEffect(() => {
     const resetTimer = () => {
       setShowUi(true);
@@ -128,6 +121,7 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
         uiTimeoutRef.current = setTimeout(() => setShowUi(false), 3000);
       }
     };
+    // ONLY show UI on mouse move, NOT on arrow keys (per user request)
     window.addEventListener('mousemove', resetTimer);
     return () => {
       window.removeEventListener('mousemove', resetTimer);
@@ -135,14 +129,11 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
     };
   }, [viewMode, editingField]);
 
+  // --- INTERACTION: KEYBOARD ---
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        showCli || 
-        editingField || 
-        document.activeElement?.tagName === 'INPUT' || 
-        document.activeElement?.tagName === 'SELECT'
-      ) return;
+      if (showCli || editingField) return;
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'SELECT') return;
 
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
@@ -159,6 +150,7 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [filteredMemories.length, showCli, editingField]);
 
+  // --- LOGIC: RENAMING ---
   const saveEdit = () => {
     if (!editingField) return;
     const { id, field } = editingField;
@@ -169,13 +161,13 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
     setEditingField(null);
   };
 
-  // --- RENDER SAFETY WRAPPER ---
+  // --- RENDER SAFETY ---
   try {
     if (!currentMemory && filteredMemories.length === 0) {
       return (
         <div className="min-h-screen bg-black flex flex-col items-center justify-center p-10 text-center">
-          <p className="text-white/20 font-serif italic mb-8">No fragments matched the current protocol.</p>
-          <button onClick={() => { setSearchQuery(''); setFilterPerson(''); }} className="px-6 py-2 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest">Reset Interface</button>
+          <p className="text-white/20 font-serif italic mb-8">No archival fragments match the current search protocol.</p>
+          <button onClick={() => { setSearchQuery(''); setFilterPerson(''); }} className="px-8 py-3 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all">Clear Search</button>
         </div>
       );
     }
@@ -194,42 +186,39 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
         )}</AnimatePresence>
 
         <div className="relative z-10 w-full h-screen flex flex-col">
+          {/* HEADER */}
           <motion.header animate={{ y: showUi ? 0 : -100, opacity: showUi ? 1 : 0 }} className="fixed top-0 left-0 right-0 z-50 px-10 py-4 flex justify-between items-center pointer-events-none">
             <div className="pointer-events-auto flex items-center gap-3">
               <div className="w-8 h-8 bg-white rounded-sm flex items-center justify-center font-serif font-black text-black text-lg italic shadow-2xl">S</div>
               <div className="flex items-baseline gap-3">
                 <h1 className="text-lg font-serif font-bold text-white tracking-tighter uppercase italic leading-none">Schnitzel Bank</h1>
-                <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.4em] leading-none">The Murray Family</span>
+                <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.4em] leading-none whitespace-nowrap">The Murray Family</span>
               </div>
             </div>
 
+            {/* SEARCH & FILTER BAR */}
             <div className="pointer-events-auto flex items-center gap-6 bg-black/60 backdrop-blur-2xl border border-white/5 rounded-full px-6 py-2 shadow-2xl">
               <Search className="w-3 h-3 text-white/20" />
               <input 
                 type="text" 
-                placeholder="SEARCH..." 
+                placeholder="SEARCH ARCHIVE..." 
                 value={searchQuery} 
                 onChange={(e) => { setSearchQuery(e.target.value); setCurrentIndex(0); }} 
-                className="w-32 bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-white focus:ring-0 p-0" 
+                className="w-32 md:w-48 bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-white focus:ring-0 placeholder:text-white/10 p-0" 
               />
               <div className="w-px h-4 bg-white/10" />
-              <select value={filterPerson} onChange={(e) => { setFilterPerson(e.target.value); setCurrentIndex(0); }} className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-white/40 focus:ring-0 cursor-pointer p-0 pr-4">
+              <select 
+                value={filterPerson} 
+                onChange={(e) => { setFilterPerson(e.target.value); setCurrentIndex(0); }} 
+                className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-white/40 focus:ring-0 cursor-pointer p-0 pr-4"
+              >
                 <option value="" className="bg-black">SUBJECTS</option>
                 {tree?.people?.map(p => <option key={p.id} value={p.id} className="bg-black">{p.name?.toUpperCase()}</option>)}
               </select>
             </div>
 
             <div className="pointer-events-auto flex gap-4">
-              <button 
-                onClick={() => {
-                  localStorage.removeItem('schnitzel_session');
-                  window.location.reload();
-                }}
-                className="p-3.5 bg-white/5 hover:bg-white/10 rounded-full border border-white/5 transition-all"
-                title="Lock Archive"
-              >
-                <Lock className="w-4 h-4 text-white/40" />
-              </button>
+              <button onClick={() => { localStorage.removeItem('schnitzel_session'); window.location.reload(); }} className="p-3.5 bg-white/5 hover:bg-white/10 rounded-full border border-white/5 transition-all" title="Lock Archive"><Lock className="w-4 h-4 text-white/40" /></button>
               <button onClick={() => {
                 if (viewMode === 'theatre') { setViewMode('grid'); setGridDensity(2); }
                 else if (gridDensity === 2) setGridDensity(8);
@@ -238,11 +227,12 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
               }} className="p-3.5 bg-white/5 hover:bg-white/10 rounded-full border border-white/5 transition-all">
                 {viewMode === 'grid' ? <Maximize2 className="w-4 h-4" /> : <Grid className="w-4 h-4" />}
               </button>
-              <button onClick={() => setShowCli(true)} className="p-3.5 bg-white/5 hover:bg-white/10 rounded-full border border-white/5 transition-all"><Terminal className="w-4 h-4 text-white" /></button>
-              <button onClick={() => onExport('ZIP', { ...tree, memories: localMemories })} className="p-3.5 bg-white text-black hover:bg-slate-200 rounded-full transition-all shadow-xl"><Download className="w-4 h-4" /></button>
+              <button onClick={() => setShowCli(true)} className="p-3.5 bg-white/5 rounded-full border border-white/5"><Terminal className="w-4 h-4" /></button>
+              <button onClick={() => onExport('ZIP', { ...tree, memories: localMemories })} className="p-3.5 bg-white text-black rounded-full shadow-2xl hover:bg-slate-200 transition-all"><Download className="w-4 h-4" /></button>
             </div>
           </motion.header>
 
+          {/* THEATRE VIEW */}
           {viewMode === 'theatre' && currentMemory && (
             <div className="flex-1 relative flex items-center justify-center overflow-hidden">
               <AnimatePresence mode="wait">
@@ -250,77 +240,39 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
                   <div className="relative flex items-center justify-center w-full h-full max-h-[70vh]">
                     <img src={currentMemory.photoUrl} className="max-w-[80vw] max-h-full object-contain shadow-[0_50px_100px_rgba(0,0,0,0.9)] rounded-sm border border-white/5" />
                     
-                    <motion.div 
-                      animate={{ y: showUi ? 0 : 100, opacity: showUi ? 1 : 0 }} 
-                      className="absolute -bottom-20 left-1/2 -translate-x-1/2 perspective-1000 pointer-events-auto z-20"
-                    >
+                    <motion.div animate={{ y: showUi ? 0 : 100, opacity: showUi ? 1 : 0 }} className="absolute -bottom-24 left-1/2 -translate-x-1/2 perspective-1000 pointer-events-auto z-20">
                       <motion.div 
                         animate={{ rotateY: isFlipped ? 180 : 0 }}
                         transition={{ duration: 0.8, type: "spring", stiffness: 100, damping: 20 }}
-                        className="relative w-96 min-h-[120px] cursor-pointer preserve-3d shadow-2xl"
+                        className="relative w-96 min-h-[130px] cursor-pointer preserve-3d"
                       >
-                        {/* Front Side */}
-                        <div 
-                          onClick={() => setIsFlipped(true)}
-                          className="absolute inset-0 backface-hidden bg-black/90 backdrop-blur-3xl border border-white/10 px-10 py-8 rounded-sm flex flex-col items-center justify-center text-center"
-                        >
+                        {/* CARD FRONT */}
+                        <div onClick={() => setIsFlipped(true)} className="absolute inset-0 backface-hidden bg-black/90 backdrop-blur-3xl border border-white/10 px-10 py-8 rounded-sm flex flex-col items-center justify-center text-center shadow-[0_30px_60px_rgba(0,0,0,0.8)]">
                           <div 
-                            className="text-[9px] font-black text-white/20 uppercase tracking-[0.5em] mb-3 italic hover:text-white/40 transition-colors"
-                            onDoubleClick={(e) => {
-                              e.stopPropagation();
-                              setEditingField({ id: currentMemory.id, field: 'year' });
-                              setEditValue(new Date(currentMemory.date).getFullYear().toString());
-                            }}
+                            className="text-[9px] font-black text-white/20 uppercase tracking-[0.5em] mb-3 italic hover:text-white/50 transition-colors"
+                            onDoubleClick={(e) => { e.stopPropagation(); setEditingField({ id: currentMemory.id, field: 'year' }); setEditValue(new Date(currentMemory.date).getFullYear().toString()); }}
                           >
                             {editingField?.id === currentMemory.id && editingField.field === 'year' ? (
-                              <input 
-                                autoFocus
-                                value={editValue}
-                                onChange={e => setEditValue(e.target.value)}
-                                onBlur={saveEdit}
-                                onKeyDown={e => e.key === 'Enter' && saveEdit()}
-                                className="bg-transparent border-b border-white/30 text-white w-12 text-center outline-none"
-                              />
-                            ) : (
-                              <>Record {currentIndex + 1} // {new Date(currentMemory.date || Date.now()).getFullYear()}</>
-                            )}
+                              <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => e.key === 'Enter' && saveEdit()} className="bg-transparent border-b border-white/30 text-white w-12 text-center outline-none" />
+                            ) : <>Record {currentIndex + 1} // {new Date(currentMemory.date || Date.now()).getFullYear()}</>}
                           </div>
                           
                           <div 
-                            className="text-2xl font-serif italic text-white tracking-widest truncate w-full group relative"
-                            onDoubleClick={(e) => {
-                              e.stopPropagation();
-                              setEditingField({ id: currentMemory.id, field: 'name' });
-                              setEditValue(currentMemory.name);
-                            }}
+                            className="text-2xl font-serif italic text-white tracking-widest truncate w-full group"
+                            onDoubleClick={(e) => { e.stopPropagation(); setEditingField({ id: currentMemory.id, field: 'name' }); setEditValue(currentMemory.name); }}
                           >
                             {editingField?.id === currentMemory.id && editingField.field === 'name' ? (
-                              <input 
-                                autoFocus
-                                value={editValue}
-                                onChange={e => setEditValue(e.target.value)}
-                                onBlur={saveEdit}
-                                onKeyDown={e => e.key === 'Enter' && saveEdit()}
-                                className="bg-transparent border-b border-white/30 text-white w-full text-center outline-none"
-                              />
+                              <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => e.key === 'Enter' && saveEdit()} className="bg-transparent border-b border-white/30 text-white w-full text-center outline-none" />
                             ) : (
-                              <span className="flex items-center justify-center gap-2">
-                                {currentMemory.name}
-                                <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-20 transition-opacity" />
-                              </span>
+                              <span className="flex items-center justify-center gap-2">{currentMemory.name}<Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-20 transition-opacity" /></span>
                             )}
                           </div>
                         </div>
 
-                        {/* Back Side */}
-                        <div 
-                          onClick={() => setIsFlipped(false)}
-                          className="absolute inset-0 backface-hidden [transform:rotateY(180deg)] bg-white/5 backdrop-blur-3xl border border-white/20 p-8 rounded-sm flex flex-col items-center justify-center text-center"
-                        >
+                        {/* CARD BACK */}
+                        <div onClick={() => setIsFlipped(false)} className="absolute inset-0 backface-hidden [transform:rotateY(180deg)] bg-white/[0.03] backdrop-blur-3xl border border-white/20 p-8 rounded-sm flex flex-col items-center justify-center text-center shadow-[0_30px_60px_rgba(0,0,0,0.8)]">
                           <span className="text-[8px] font-black text-white/20 uppercase tracking-[0.5em] mb-4 italic">Metadata Inscription</span>
-                          <p className="text-sm font-serif italic text-white/80 leading-relaxed">
-                            {currentMemory.description || "No archival notes found for this fragment."}
-                          </p>
+                          <p className="text-sm font-serif italic text-white/80 leading-relaxed">{currentMemory.description || "No specific metadata note available."}</p>
                         </div>
                       </motion.div>
                     </motion.div>
@@ -332,11 +284,12 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
             </div>
           )}
 
+          {/* GRID VIEW */}
           {viewMode === 'grid' && (
             <div className="flex-1 overflow-y-auto p-10 pt-32 custom-scrollbar">
               <div className={`grid gap-6 max-w-[1800px] mx-auto pb-20 ${gridDensity === 2 ? 'grid-cols-2' : gridDensity === 8 ? 'grid-cols-4 md:grid-cols-8' : 'grid-cols-6 md:grid-cols-12'}`}>
                 {filteredMemories.map((m, idx) => (
-                  <motion.div key={m.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => { setCurrentIndex(idx); setViewMode('theatre'); }} className="aspect-[3/4] bg-white/[0.02] border border-white/5 rounded-sm overflow-hidden cursor-pointer group hover:border-white/20">
+                  <motion.div key={m.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => { setCurrentIndex(idx); setViewMode('theatre'); }} className="aspect-[3/4] bg-white/[0.02] border border-white/5 rounded-sm overflow-hidden cursor-pointer group hover:border-white/20 transition-all">
                     <img src={m.photoUrl} className="w-full h-full object-cover opacity-40 group-hover:opacity-100 grayscale hover:grayscale-0 transition-all duration-700" />
                   </motion.div>
                 ))}
@@ -349,9 +302,9 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
   } catch (err) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center p-12 text-center text-white">
-        <h2 className="text-xl font-serif italic mb-4">Diagnostic Failure</h2>
-        <p className="text-white/40 text-[10px] uppercase tracking-widest mb-8">The view component crashed. Reason: {(err as Error).message}</p>
-        <button onClick={() => window.location.reload()} className="px-8 py-3 bg-white text-black text-[10px] font-black uppercase tracking-widest">Restart Node</button>
+        <h2 className="text-xl font-serif italic mb-4">Archive Component Error</h2>
+        <p className="text-white/40 text-[10px] uppercase tracking-widest mb-8">Reason: {(err as Error).message}</p>
+        <button onClick={() => window.location.reload()} className="px-8 py-3 bg-white text-black text-[10px] font-black uppercase tracking-widest">Re-initialize</button>
       </div>
     );
   }
