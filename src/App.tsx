@@ -12,9 +12,17 @@ import ImmersiveGallery from './pages/ImmersiveGallery';
 const MURRAY_PROTOCOL_KEY = "MURRAY_LEGACY_2026";
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('schnitzel_session') === 'active';
+  });
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(true);
+
+  const handleUnlock = () => {
+    localStorage.setItem('schnitzel_session', 'active');
+    setIsAuthenticated(true);
+  };
   const [memoryTree, setMemoryTree] = useState<MemoryTree>(() => {
     try {
       const cached = localStorage.getItem('schnitzel_snapshot');
@@ -61,9 +69,11 @@ function App() {
         return next;
       });
       setConnectionError(null); // Clear error on success
+      setIsSyncing(false);
     }, (error) => {
       console.error('Firebase Sync Error:', error);
       setConnectionError(error.message || 'Access Restricted');
+      setIsSyncing(false);
     });
 
     return () => unsub();
@@ -118,9 +128,10 @@ function App() {
     <HashRouter>
       {!isAuthenticated ? (
         <LandingPage 
-          onUnlock={() => setIsAuthenticated(true)} 
+          onUnlock={handleUnlock} 
           itemCount={memoryTree.memories.length} 
           error={connectionError}
+          isSyncing={isSyncing}
         />
       ) : (
         <Routes>

@@ -6,9 +6,10 @@ interface LandingPageProps {
   onUnlock: () => void;
   itemCount?: number;
   error?: string | null;
+  isSyncing?: boolean;
 }
 
-export default function LandingPage({ onUnlock, itemCount = 0, error = null }: LandingPageProps) {
+export default function LandingPage({ onUnlock, itemCount = 0, error = null, isSyncing = false }: LandingPageProps) {
   const [password, setPassword] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isTimedOut, setIsTimedOut] = useState(false);
@@ -87,15 +88,20 @@ export default function LandingPage({ onUnlock, itemCount = 0, error = null }: L
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            {safeItemCount > 0 ? (
+            {isSyncing ? (
+              <div className="flex items-center gap-1.5 text-blue-500/40 tracking-widest italic">
+                <Loader2 className="w-2 h-2 animate-spin" />
+                Handshaking with Cloud...
+              </div>
+            ) : safeItemCount > 0 ? (
               <div className="flex items-center gap-1.5 text-emerald-500/40 tracking-widest">
                 <span className="w-1 h-1 rounded-full bg-current animate-pulse"></span>
                 {safeItemCount} Active Fragments
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 text-white/10 tracking-widest italic">
-                <Loader2 className="w-2 h-2 animate-spin" />
-                Scanning Local Node...
+              <div className="flex items-center gap-1.5 text-red-500/20 tracking-widest italic">
+                <AlertCircle className="w-2 h-2" />
+                Local Node Offline
               </div>
             )}
           </div>
