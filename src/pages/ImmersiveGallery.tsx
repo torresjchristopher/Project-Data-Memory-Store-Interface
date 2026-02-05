@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { 
   Download, Terminal, Search, ChevronLeft, ChevronRight, 
   X, Grid, Maximize2, Lock, Edit3
