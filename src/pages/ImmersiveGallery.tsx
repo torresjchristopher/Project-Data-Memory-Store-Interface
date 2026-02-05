@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   Download, Terminal, Search, ChevronLeft, ChevronRight, 
-  X, Grid, Maximize2, Lock
+  X, Grid, Maximize2, Lock, Edit3
 } from 'lucide-react';
 import type { MemoryTree } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -23,8 +23,11 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
   const [filterPerson, setFilterPerson] = useState('');
   const [isFlipped, setIsFlipped] = useState(false);
   const [transitionDuration, setTransitionDuration] = useState(0.2);
-  const [overrides] = useState<Record<string, { name?: string, date?: string }>>({});
-  const [editingField] = useState<{ id: string, field: 'name' | 'year' } | null>(null);
+  
+  // Local renaming state
+  const [overrides, setOverrides] = useState<Record<string, { name?: string, date?: string }>>({});
+  const [editingField, setEditingField] = useState<{ id: string, field: 'name' | 'year' } | null>(null);
+  const [editValue, setEditValue] = useState('');
 
   const uiTimeoutRef = useRef<any>(null);
   const autoCycleIntervalRef = useRef<any>(null);
@@ -62,13 +65,14 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
           const personIds = m.tags?.personIds || [];
           const customTags = (m.tags?.customTags || []).map(t => t.toLowerCase());
           
-          // Dropdown filter always applies first
+          // Dropdown filter: If a person is selected, we ONLY show their memories.
+          // Search then further eliminates from that set.
           const matchPersonDropdown = !filterPerson || personIds.includes(filterPerson);
           if (!matchPersonDropdown) return false;
           
           if (!q) return true;
 
-          // BROAD OR SEARCH (Eliminitory)
+          // BROAD OR SEARCH (Eliminatory)
           const nameMatch = m.name?.toLowerCase().includes(q);
           const descMatch = m.description?.toLowerCase().includes(q);
           const contentMatch = m.content?.toLowerCase().includes(q);
@@ -104,8 +108,9 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
     const startAutoCycle = () => {
       if (autoCycleIntervalRef.current) clearInterval(autoCycleIntervalRef.current);
       autoCycleIntervalRef.current = setInterval(() => {
-        if (viewMode === 'theatre' && !showUi && filteredMemories.length > 1) {
-          setTransitionDuration(1.5); // Slower for auto
+        // Only auto-cycle if UI is hidden AND no one is editing
+        if (viewMode === 'theatre' && !showUi && filteredMemories.length > 1 && !editingField) {
+          setTransitionDuration(1.5); 
           setCurrentIndex(prev => (prev + 1) % filteredMemories.length);
         }
       }, 10000);
@@ -113,7 +118,7 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
 
     startAutoCycle();
     return () => { if (autoCycleIntervalRef.current) clearInterval(autoCycleIntervalRef.current); };
-  }, [showUi, viewMode, filteredMemories.length]);
+  }, [showUi, viewMode, filteredMemories.length, editingField]);
 
   useEffect(() => {
     const resetTimer = () => {
@@ -154,6 +159,16 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [filteredMemories.length, showCli, editingField]);
 
+  const saveEdit = () => {
+    if (!editingField) return;
+    const { id, field } = editingField;
+    setOverrides(prev => ({
+      ...prev,
+      [id]: { ...prev[id], [field === 'year' ? 'date' : 'name']: field === 'year' ? `${editValue}-01-01` : editValue }
+    }));
+    setEditingField(null);
+  };
+
   // --- RENDER SAFETY WRAPPER ---
   try {
     if (!currentMemory && filteredMemories.length === 0) {
@@ -190,7 +205,13 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
 
             <div className="pointer-events-auto flex items-center gap-6 bg-black/60 backdrop-blur-2xl border border-white/5 rounded-full px-6 py-2 shadow-2xl">
               <Search className="w-3 h-3 text-white/20" />
-              <input type="text" placeholder="SEARCH..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentIndex(0); }} className="w-32 bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-white focus:ring-0 p-0" />
+              <input 
+                type="text" 
+                placeholder="SEARCH..." 
+                value={searchQuery} 
+                onChange={(e) => { setSearchQuery(e.target.value); setCurrentIndex(0); }} 
+                className="w-32 bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-white focus:ring-0 p-0" 
+              />
               <div className="w-px h-4 bg-white/10" />
               <select value={filterPerson} onChange={(e) => { setFilterPerson(e.target.value); setCurrentIndex(0); }} className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-white/40 focus:ring-0 cursor-pointer p-0 pr-4">
                 <option value="" className="bg-black">SUBJECTS</option>
@@ -218,7 +239,7 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
                 {viewMode === 'grid' ? <Maximize2 className="w-4 h-4" /> : <Grid className="w-4 h-4" />}
               </button>
               <button onClick={() => setShowCli(true)} className="p-3.5 bg-white/5 hover:bg-white/10 rounded-full border border-white/5 transition-all"><Terminal className="w-4 h-4 text-white" /></button>
-              <button onClick={() => onExport('ZIP')} className="p-3.5 bg-white text-black hover:bg-slate-200 rounded-full transition-all shadow-xl"><Download className="w-4 h-4" /></button>
+              <button onClick={() => onExport('ZIP', { ...tree, memories: localMemories })} className="p-3.5 bg-white text-black hover:bg-slate-200 rounded-full transition-all shadow-xl"><Download className="w-4 h-4" /></button>
             </div>
           </motion.header>
 
@@ -236,17 +257,66 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
                       <motion.div 
                         animate={{ rotateY: isFlipped ? 180 : 0 }}
                         transition={{ duration: 0.8, type: "spring", stiffness: 100, damping: 20 }}
-                        onClick={() => setIsFlipped(!isFlipped)}
                         className="relative w-96 min-h-[120px] cursor-pointer preserve-3d shadow-2xl"
                       >
                         {/* Front Side */}
-                        <div className="absolute inset-0 backface-hidden bg-black/90 backdrop-blur-3xl border border-white/10 px-10 py-8 rounded-sm flex flex-col items-center justify-center text-center">
-                          <div className="text-[9px] font-black text-white/20 uppercase tracking-[0.5em] mb-3 italic">Record {currentIndex + 1} // {new Date(currentMemory.date || Date.now()).getFullYear()}</div>
-                          <div className="text-2xl font-serif italic text-white tracking-widest truncate w-full">{currentMemory.name}</div>
+                        <div 
+                          onClick={() => setIsFlipped(true)}
+                          className="absolute inset-0 backface-hidden bg-black/90 backdrop-blur-3xl border border-white/10 px-10 py-8 rounded-sm flex flex-col items-center justify-center text-center"
+                        >
+                          <div 
+                            className="text-[9px] font-black text-white/20 uppercase tracking-[0.5em] mb-3 italic hover:text-white/40 transition-colors"
+                            onDoubleClick={(e) => {
+                              e.stopPropagation();
+                              setEditingField({ id: currentMemory.id, field: 'year' });
+                              setEditValue(new Date(currentMemory.date).getFullYear().toString());
+                            }}
+                          >
+                            {editingField?.id === currentMemory.id && editingField.field === 'year' ? (
+                              <input 
+                                autoFocus
+                                value={editValue}
+                                onChange={e => setEditValue(e.target.value)}
+                                onBlur={saveEdit}
+                                onKeyDown={e => e.key === 'Enter' && saveEdit()}
+                                className="bg-transparent border-b border-white/30 text-white w-12 text-center outline-none"
+                              />
+                            ) : (
+                              <>Record {currentIndex + 1} // {new Date(currentMemory.date || Date.now()).getFullYear()}</>
+                            )}
+                          </div>
+                          
+                          <div 
+                            className="text-2xl font-serif italic text-white tracking-widest truncate w-full group relative"
+                            onDoubleClick={(e) => {
+                              e.stopPropagation();
+                              setEditingField({ id: currentMemory.id, field: 'name' });
+                              setEditValue(currentMemory.name);
+                            }}
+                          >
+                            {editingField?.id === currentMemory.id && editingField.field === 'name' ? (
+                              <input 
+                                autoFocus
+                                value={editValue}
+                                onChange={e => setEditValue(e.target.value)}
+                                onBlur={saveEdit}
+                                onKeyDown={e => e.key === 'Enter' && saveEdit()}
+                                className="bg-transparent border-b border-white/30 text-white w-full text-center outline-none"
+                              />
+                            ) : (
+                              <span className="flex items-center justify-center gap-2">
+                                {currentMemory.name}
+                                <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-20 transition-opacity" />
+                              </span>
+                            )}
+                          </div>
                         </div>
 
                         {/* Back Side */}
-                        <div className="absolute inset-0 backface-hidden [transform:rotateY(180deg)] bg-white/5 backdrop-blur-3xl border border-white/20 p-8 rounded-sm flex flex-col items-center justify-center text-center">
+                        <div 
+                          onClick={() => setIsFlipped(false)}
+                          className="absolute inset-0 backface-hidden [transform:rotateY(180deg)] bg-white/5 backdrop-blur-3xl border border-white/20 p-8 rounded-sm flex flex-col items-center justify-center text-center"
+                        >
                           <span className="text-[8px] font-black text-white/20 uppercase tracking-[0.5em] mb-4 italic">Metadata Inscription</span>
                           <p className="text-sm font-serif italic text-white/80 leading-relaxed">
                             {currentMemory.description || "No archival notes found for this fragment."}

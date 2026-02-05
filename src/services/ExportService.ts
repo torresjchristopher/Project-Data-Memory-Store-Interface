@@ -44,8 +44,17 @@ class ExportServiceImpl {
 
         // Use the memory name and year for the filename
         const year = new Date(memory.date).getFullYear();
-        const baseName = this.sanitizeFileName(memory.name || 'artifact');
-        const fileName = `${year}_${baseName}${this.getExtension(memory.photoUrl)}`;
+        let baseName = this.sanitizeFileName(memory.name || 'artifact');
+        const sourceExt = this.getExtension(memory.photoUrl);
+        
+        // If the baseName already ends with the same extension or a different one, strip it
+        // to avoid name.jpg.jpg or Murray.web.jpg
+        const lastDotIndex = baseName.lastIndexOf('.');
+        if (lastDotIndex !== -1) {
+          baseName = baseName.substring(0, lastDotIndex);
+        }
+
+        const fileName = `${year}_${baseName}${sourceExt}`;
         
         targetFolder?.file(fileName, blob);
       } catch (err) {
