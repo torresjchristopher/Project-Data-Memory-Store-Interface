@@ -47,15 +47,16 @@ function App() {
     return () => unsub();
   }, []);
 
-  const handleExport = async (format: 'ZIP' | 'PDF') => {
+  const handleExport = async (format: 'ZIP' | 'PDF', updatedTree?: MemoryTree) => {
     try {
       let blob: Blob;
+      const treeToExport = updatedTree || memoryTree;
       
       if (format === 'PDF') {
-        blob = await MemoryBookPdfService.generateMemoryBook(memoryTree, memoryTree.familyName);
+        blob = await MemoryBookPdfService.generateMemoryBook(treeToExport, treeToExport.familyName);
       } else {
         const exportService = ExportService.getInstance();
-        blob = await exportService.exportAsZip(memoryTree, '');
+        blob = await exportService.exportAsZip(treeToExport, '');
       }
 
       const url = URL.createObjectURL(blob);
