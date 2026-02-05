@@ -27,7 +27,7 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
   const [editingField, setEditingField] = useState<{ id: string, field: 'name' | 'year' } | null>(null);
   const [editValue, setEditValue] = useState('');
 
-  const hideTimeoutRef = useRef<any>(null);
+  const hideTimerRef = useRef<any>(null);
   const cycleIntervalRef = useRef<any>(null);
 
   // --- LOGIC: DATA MAPPING ---
@@ -39,91 +39,99 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
     }));
   }, [tree?.memories, overrides]);
 
-  // --- LOGIC: ROBUST BROAD SEARCH ---
+  // --- LOGIC: HYPER-INCLUSIVE SEARCH ---
   const filteredMemories = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    
-    return (localMemories || []).filter(m => {
-      if (!m || !m.photoUrl) return false;
+    const fp = filterPerson;
 
-      // 1. Dropdown Filter
-      const pIds = m.tags?.personIds || [];
-      if (filterPerson && filterPerson !== 'FAMILY_ROOT' && !pIds.includes(filterPerson)) return false;
-      
+    return (localMemories || []).filter(m => {
+      // 1. Security & Existence
+      if (!m || (!m.photoUrl && !m.fileUrl)) return false;
+
+      // 2. Strict Dropdown Filter
+      const personIds = m.tags?.personIds || [];
+      if (fp && fp !== '' && fp !== 'FAMILY_ROOT') {
+        if (!personIds.includes(fp)) return false;
+      }
+
+      // 3. Eliminatory Search
       if (!q) return true;
 
-      // 2. BROAD OR MATCH (Eliminatory)
-      const name = (m.name || '').toLowerCase();
-      const desc = (m.description || '').toLowerCase();
-      const content = (m.content || '').toLowerCase();
-      const loc = (m.location || '').toLowerCase();
-      const year = m.date ? new Date(m.date).getFullYear().toString() : '';
-      const tags = (m.tags?.customTags || []).map(t => t.toLowerCase());
-      
-      // Match against people names in the database
-      const hasPersonMatch = pIds.some(pid => {
-        const p = tree?.people?.find(person => person.id === pid);
-        return (p?.name || '').toLowerCase().includes(q);
-      });
+      // Build Haystack: Look through every field for a match
+      const searchableFields = [
+        m.name,
+        m.description,
+        m.location,
+        m.content,
+        m.date ? new Date(m.date).getFullYear().toString() : '',
+        ...(m.tags?.customTags || []),
+        // Resolve person names from IDs
+        ...(personIds.map(pid => tree?.people?.find(p => p.id === pid)?.name || ''))
+      ];
 
-      return name.includes(q) || desc.includes(q) || content.includes(q) || 
-             loc.includes(q) || year.includes(q) || tags.some(t => t.includes(q)) || hasPersonMatch;
+      const haystack = searchableFields.join(' ').toLowerCase();
+      return haystack.includes(q);
     });
   }, [localMemories, filterPerson, searchQuery, tree?.people]);
 
   const currentMemory = filteredMemories[currentIndex] || null;
 
-  // --- INTERACTION: TIMERS ---
+  // --- INTERACTION: CONSOLIDATED TIMERS ---
   useEffect(() => {
-    const resetTimers = (showMenu = true) => {
-      // Menu Auto-Hide
-      if (showMenu) {
+    const clearTimers = () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      if (cycleIntervalRef.current) clearInterval(cycleIntervalRef.current);
+    };
+
+    const startTimers = (resetMenu = true) => {
+      clearTimers();
+
+      // 1. Menu Auto-Hide (3s)
+      if (resetMenu) {
         setShowUi(true);
-        if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
         if (viewMode === 'theatre' && !editingField) {
-          hideTimeoutRef.current = setTimeout(() => setShowUi(false), 3000);
+          hideTimerRef.current = setTimeout(() => setShowUi(false), 3000);
         }
       }
 
-      // Auto-Cycle (10s)
-      if (cycleIntervalRef.current) clearInterval(cycleIntervalRef.current);
+      // 2. Auto-Cycle (10s idle)
       if (viewMode === 'theatre' && !editingField) {
         cycleIntervalRef.current = setInterval(() => {
           if (!showUi && filteredMemories.length > 1) {
-            setTransitionDuration(1.5);
+            setTransitionDuration(1.5); // Eloquent transition
             setCurrentIndex(prev => (prev + 1) % filteredMemories.length);
           }
         }, 10000);
       }
     };
 
-    const onMove = () => resetTimers(true);
-    const onKey = (e: KeyboardEvent) => {
+    const handleInteraction = () => startTimers(true);
+    const handleKeys = (e: KeyboardEvent) => {
       if (showCli || editingField) return;
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName || '')) return;
 
       if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
         e.preventDefault();
-        setTransitionDuration(0.2);
+        setTransitionDuration(0.2); // Snappy manual transition
         setCurrentIndex(prev => (e.key === 'ArrowLeft' ? (prev - 1 + filteredMemories.length) % filteredMemories.length : (prev + 1) % filteredMemories.length));
-        resetTimers(false); // Navigate but keep menu hidden
+        startTimers(false); // Navigation does NOT show menus
       } else {
-        resetTimers(true);
+        startTimers(true);
       }
     };
 
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('keydown', onKey);
-    resetTimers(true);
+    window.addEventListener('mousemove', handleInteraction);
+    window.addEventListener('keydown', handleKeys);
+    startTimers(true);
 
     return () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('keydown', onKey);
-      if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
-      if (cycleIntervalRef.current) clearInterval(cycleIntervalRef.current);
+      window.removeEventListener('mousemove', handleInteraction);
+      window.removeEventListener('keydown', handleKeys);
+      clearTimers();
     };
   }, [viewMode, editingField, filteredMemories.length, showUi, showCli]);
 
+  // Prevent index drift
   useEffect(() => {
     if (currentIndex >= filteredMemories.length && filteredMemories.length > 0) setCurrentIndex(0);
   }, [filteredMemories.length]);
@@ -141,8 +149,8 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
   if (!currentMemory && filteredMemories.length === 0) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center p-10 text-center">
-        <p className="text-white/20 font-serif italic mb-8 text-xl">No fragments found in the Murray Protocol.</p>
-        <button onClick={() => { setSearchQuery(''); setFilterPerson(''); }} className="px-10 py-4 border border-white/10 text-white text-[10px] font-black uppercase tracking-[0.4em] hover:bg-white hover:text-black transition-all">Clear Protocol</button>
+        <p className="text-white/20 font-serif italic mb-8 text-xl">No fragments match the current search protocol.</p>
+        <button onClick={() => { setSearchQuery(''); setFilterPerson(''); }} className="px-10 py-4 border border-white/10 text-white text-[10px] font-black uppercase tracking-[0.4em] hover:bg-white hover:text-black transition-all">Reset Interface</button>
       </div>
     );
   }
@@ -150,16 +158,18 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
   return (
     <div className="min-h-screen bg-black text-white font-sans overflow-hidden relative selection:bg-white/10">
       <div className="absolute inset-0 bg-noise opacity-20 pointer-events-none z-0"></div>
+      
       <AnimatePresence>{showCli && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/98 backdrop-blur-2xl overflow-y-auto">
           <div className="p-8 md:p-12">
-            <button onClick={() => setShowCli(false)} className="fixed top-8 right-8 p-4 bg-white/5 rounded-full border border-white/5 hover:bg-white/10 transition-all"><X className="w-6 h-6 text-white" /></button>
+            <button onClick={() => setShowCli(false)} className="fixed top-8 right-8 p-4 bg-white/5 rounded-full border border-white/5 hover:bg-white/10 transition-all shadow-2xl"><X className="w-6 h-6 text-white" /></button>
             <div className="max-w-5xl mx-auto pt-20"><ArtifactCliTab /></div>
           </div>
         </motion.div>
       )}</AnimatePresence>
 
       <div className="relative z-10 w-full h-screen flex flex-col">
+        {/* TOP INTERFACE */}
         <motion.header animate={{ y: showUi ? 0 : -100, opacity: showUi ? 1 : 0 }} className="fixed top-0 left-0 right-0 z-50 px-10 py-4 flex justify-between items-center pointer-events-none">
           <div className="pointer-events-auto flex items-center gap-3">
             <div className="w-8 h-8 bg-white rounded-sm flex items-center justify-center font-serif font-black text-black text-lg italic shadow-2xl">S</div>
@@ -171,7 +181,13 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
 
           <div className="pointer-events-auto flex items-center gap-6 bg-black/60 backdrop-blur-2xl border border-white/5 rounded-full px-6 py-2 shadow-2xl">
             <Search className="w-3 h-3 text-white/20" />
-            <input type="text" placeholder="SEARCH..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentIndex(0); }} className="w-32 md:w-48 bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-white focus:ring-0 p-0" />
+            <input 
+              type="text" 
+              placeholder="SEARCH..." 
+              value={searchQuery} 
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentIndex(0); }} 
+              className="w-32 md:w-48 bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-white focus:ring-0 placeholder:text-white/10 p-0" 
+            />
             <div className="w-px h-4 bg-white/10" />
             <select value={filterPerson} onChange={(e) => { setFilterPerson(e.target.value); setCurrentIndex(0); }} className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-white/40 focus:ring-0 cursor-pointer p-0 pr-4">
               <option value="">SUBJECTS</option>
@@ -180,32 +196,38 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
           </div>
 
           <div className="pointer-events-auto flex gap-4">
-            <button onClick={() => { localStorage.removeItem('schnitzel_session'); window.location.reload(); }} className="p-3.5 bg-white/5 hover:bg-white/10 rounded-full border border-white/5 transition-all"><Lock className="w-4 h-4 text-white/40" /></button>
-            <button onClick={() => setViewMode(viewMode === 'theatre' ? 'grid' : 'theatre')} className="p-3.5 bg-white/5 hover:bg-white/10 rounded-full border border-white/5 transition-all">{viewMode === 'grid' ? <Maximize2 className="w-4 h-4" /> : <Grid className="w-4 h-4" />}</button>
-            <button onClick={() => setShowCli(true)} className="p-3.5 bg-white/5 rounded-full border border-white/5"><Terminal className="w-4 h-4" /></button>
+            <button onClick={() => { localStorage.removeItem('schnitzel_session'); window.location.reload(); }} className="p-3.5 bg-white/5 hover:bg-white/10 rounded-full border border-white/5 transition-all shadow-xl" title="Lock Archive"><Lock className="w-4 h-4 text-white/40" /></button>
+            <button onClick={() => setViewMode(viewMode === 'theatre' ? 'grid' : 'theatre')} className="p-3.5 bg-white/5 hover:bg-white/10 rounded-full border border-white/5 transition-all shadow-xl">{viewMode === 'grid' ? <Maximize2 className="w-4 h-4" /> : <Grid className="w-4 h-4" />}</button>
+            <button onClick={() => setShowCli(true)} className="p-3.5 bg-white/5 hover:bg-white/10 rounded-full border border-white/5 transition-all shadow-xl"><Terminal className="w-4 h-4" /></button>
             <button onClick={() => onExport('ZIP', { ...tree, memories: localMemories })} className="p-3.5 bg-white text-black rounded-full shadow-2xl hover:bg-slate-200 transition-all"><Download className="w-4 h-4" /></button>
           </div>
         </motion.header>
 
+        {/* PRIMARY ARCHIVE VIEW */}
         {viewMode === 'theatre' && currentMemory && (
           <div className="flex-1 relative flex items-center justify-center overflow-hidden">
             <AnimatePresence mode="wait">
               <motion.div key={currentMemory.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: transitionDuration }} className="relative z-10 w-full h-full flex items-center justify-center p-20 md:p-32">
                 <div className="relative flex items-center justify-center w-full h-full max-h-[70vh]">
-                  <img src={currentMemory.photoUrl} className="max-w-[80vw] max-h-full object-contain shadow-[0_50px_100px_rgba(0,0,0,0.9)] rounded-sm border border-white/5" />
+                  <img src={currentMemory.photoUrl || currentMemory.fileUrl} className="max-w-[80vw] max-h-full object-contain shadow-[0_50px_100px_rgba(0,0,0,0.9)] rounded-sm border border-white/5" />
+                  
                   <motion.div animate={{ y: showUi ? 0 : 100, opacity: showUi ? 1 : 0 }} className="absolute -bottom-24 left-1/2 -translate-x-1/2 perspective-1000 pointer-events-auto z-20">
                     <motion.div animate={{ rotateY: isFlipped ? 180 : 0 }} transition={{ duration: 0.8, type: "spring", stiffness: 100, damping: 20 }} className="relative w-96 min-h-[130px] cursor-pointer preserve-3d shadow-[0_30px_60px_rgba(0,0,0,0.8)]">
+                      {/* RECORD FRONT */}
                       <div onClick={() => setIsFlipped(true)} className="absolute inset-0 backface-hidden bg-black/90 backdrop-blur-3xl border border-white/10 px-10 py-8 rounded-sm flex flex-col items-center justify-center text-center">
-                        <div className="text-[9px] font-black text-white/20 uppercase tracking-[0.5em] mb-3 italic hover:text-white/50" onDoubleClick={(e) => { e.stopPropagation(); setEditingField({ id: currentMemory.id, field: 'year' }); setEditValue(new Date(currentMemory.date).getFullYear().toString()); }}>
+                        <div className="text-[9px] font-black text-white/20 uppercase tracking-[0.5em] mb-3 italic hover:text-white/50 transition-colors" onDoubleClick={(e) => { e.stopPropagation(); setEditingField({ id: currentMemory.id, field: 'year' }); setEditValue(new Date(currentMemory.date).getFullYear().toString()); }}>
                           {editingField?.id === currentMemory.id && editingField.field === 'year' ? <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => e.key === 'Enter' && saveEdit()} className="bg-transparent border-b border-white/30 text-white w-12 text-center outline-none" /> : <>Record {currentIndex + 1} // {new Date(currentMemory.date || Date.now()).getFullYear()}</>}
                         </div>
                         <div className="text-2xl font-serif italic text-white tracking-widest truncate w-full group" onDoubleClick={(e) => { e.stopPropagation(); setEditingField({ id: currentMemory.id, field: 'name' }); setEditValue(currentMemory.name); }}>
                           {editingField?.id === currentMemory.id && editingField.field === 'name' ? <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => e.key === 'Enter' && saveEdit()} className="bg-transparent border-b border-white/30 text-white w-full text-center outline-none" /> : <span className="flex items-center justify-center gap-2">{currentMemory.name}<Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-20 transition-opacity" /></span>}
                         </div>
                       </div>
+                      {/* METADATA BACK */}
                       <div onClick={() => setIsFlipped(false)} className="absolute inset-0 backface-hidden [transform:rotateY(180deg)] bg-white/[0.03] backdrop-blur-3xl border border-white/20 p-8 rounded-sm flex flex-col items-center justify-center text-center">
-                        <span className="text-[8px] font-black text-white/20 uppercase tracking-[0.5em] mb-4 italic">Metadata Inscription</span>
-                        <p className="text-sm font-serif italic text-white/80 leading-relaxed">{currentMemory.description || "No archival notes found."}</p>
+                        <span className="text-[8px] font-black text-white/20 uppercase tracking-[0.5em] mb-4 italic">Archival Note</span>
+                        <div className="max-h-[80px] overflow-y-auto custom-scrollbar">
+                          <p className="text-sm font-serif italic text-white/80 leading-relaxed">{currentMemory.description || "No metadata found."}</p>
+                        </div>
                       </div>
                     </motion.div>
                   </motion.div>
@@ -217,12 +239,13 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
           </div>
         )}
 
+        {/* INDEX VIEW */}
         {viewMode === 'grid' && (
           <div className="flex-1 overflow-y-auto p-10 pt-32 custom-scrollbar">
             <div className="grid grid-cols-2 md:grid-cols-8 gap-6 max-w-[1800px] mx-auto pb-20">
               {filteredMemories.map((m, idx) => (
-                <motion.div key={m.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => { setCurrentIndex(idx); setViewMode('theatre'); }} className="aspect-[3/4] bg-white/[0.02] border border-white/5 rounded-sm overflow-hidden cursor-pointer group hover:border-white/20 transition-all">
-                  <img src={m.photoUrl} className="w-full h-full object-cover opacity-40 group-hover:opacity-100 grayscale hover:grayscale-0 transition-all duration-700" />
+                <motion.div key={m.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => { setCurrentIndex(idx); setViewMode('theatre'); }} className="aspect-[3/4] bg-white/[0.02] border border-white/5 rounded-sm overflow-hidden cursor-pointer group hover:border-white/20 transition-all shadow-xl">
+                  <img src={m.photoUrl || m.fileUrl} className="w-full h-full object-cover opacity-40 group-hover:opacity-100 grayscale group-hover:grayscale-0 transition-all duration-700" />
                 </motion.div>
               ))}
             </div>
