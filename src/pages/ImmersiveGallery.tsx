@@ -40,27 +40,36 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
   const filteredMemories = useMemo(() => {
     try {
       const q = searchQuery.toLowerCase().trim();
-      const matchingPerson = q ? tree?.people?.find(p => p.name?.toLowerCase().includes(q)) : null;
+      
+      // 1. Identify ALL people matching the query
+      const matchingPeopleIds = (tree?.people || [])
+        .filter(p => p.name?.toLowerCase().includes(q))
+        .map(p => p.id);
+      
+      // 2. Identify ALL tags matching the query
       const allTags = new Set<string>();
-      tree?.memories?.forEach(m => m.tags?.customTags?.forEach(t => allTags.add(t.toLowerCase())));
-      const matchingTag = q ? Array.from(allTags).find(t => t.includes(q)) : null;
+      (tree?.memories || []).forEach(m => m.tags?.customTags?.forEach(t => allTags.add(t.toLowerCase())));
+      const matchingTags = Array.from(allTags).filter(t => t.includes(q));
 
       return (localMemories || [])
         .filter(m => !!m.photoUrl)
         .filter(m => {
           const personIds = m.tags?.personIds || [];
           const customTags = (m.tags?.customTags || []).map(t => t.toLowerCase());
+          
+          // Dropdown filter always applies first
           const matchPersonDropdown = !filterPerson || personIds.includes(filterPerson);
           if (!matchPersonDropdown) return false;
-          if (!q) return true;
-          if (matchingPerson) return personIds.includes(matchingPerson.id);
-          if (matchingTag) return customTags.includes(matchingTag);
           
+          if (!q) return true;
+
+          // BROAD OR SEARCH (Eliminitory)
           const nameMatch = m.name?.toLowerCase().includes(q);
           const descMatch = m.description?.toLowerCase().includes(q);
           const contentMatch = m.content?.toLowerCase().includes(q);
           const locationMatch = m.location?.toLowerCase().includes(q);
           
+          // Year match
           let yearMatch = false;
           try {
             if (m.date) {
@@ -69,10 +78,13 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
             }
           } catch(e) {}
 
-          const peopleMatch = personIds.some(pid => 
-            tree?.people?.find(p => p.id === pid)?.name?.toLowerCase().includes(q)
-          );
-          return nameMatch || descMatch || contentMatch || locationMatch || yearMatch || peopleMatch;
+          // Person Match: Does this artifact belong to ANY person whose name matches the query?
+          const personNameMatch = personIds.some(pid => matchingPeopleIds.includes(pid));
+
+          // Tag Match: Does this artifact have ANY tag that matches the query?
+          const tagMatch = customTags.some(t => matchingTags.includes(t));
+          
+          return nameMatch || descMatch || contentMatch || locationMatch || yearMatch || personNameMatch || tagMatch;
         });
     } catch (e) { return []; }
   }, [localMemories, filterPerson, searchQuery, tree?.people, tree?.memories]);
