@@ -304,12 +304,9 @@ export default function ImmersiveGallery({ tree, onExport, overrides, setOverrid
       <div className="relative z-10 w-full h-screen flex flex-col">
         {/* HEADER */}
         <motion.header animate={{ y: showUi ? 0 : -100, opacity: showUi ? 1 : 0 }} className="fixed top-0 left-0 right-0 z-50 px-10 py-4 flex justify-between items-center pointer-events-none">
-          <div className="pointer-events-auto flex items-center gap-4">
-            <img src="./assets/crest.png" className="w-10 h-10 object-contain brightness-110" alt="Crest" />
-            <div className="flex flex-col items-start gap-0">
-              <h1 className="text-lg font-serif font-bold text-white tracking-tighter uppercase italic leading-tight">Schnitzelbank</h1>
-              <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.4em] leading-tight">The Murray Family Website</span>
-            </div>
+          <div className="pointer-events-auto flex flex-col items-start gap-0">
+            <h1 className="text-lg font-serif font-bold text-white tracking-tighter uppercase italic leading-tight">Schnitzelbank</h1>
+            <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.4em] leading-tight">The Murray Family Website</span>
           </div>
 
           <div className="pointer-events-auto flex items-center gap-6 bg-black/60 backdrop-blur-2xl border border-white/5 rounded-full px-6 py-2 shadow-2xl">
