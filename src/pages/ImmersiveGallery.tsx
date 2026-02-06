@@ -218,20 +218,53 @@ export default function ImmersiveGallery({ tree, onExport, overrides, setOverrid
                   </motion.div>
                 </AnimatePresence>
 
-                <motion.div 
-                  animate={{ y: showUi ? 0 : 250, opacity: showUi ? 1 : 0, pointerEvents: showUi ? 'auto' : 'none' }} 
-                  transition={{ duration: 0.3 }}
-                  className="absolute bottom-12 left-1/2 -translate-x-1/2 perspective-1000 z-20"
-                >
-                  <div className="relative w-96 min-h-[130px] shadow-[0_30px_60px_rgba(0,0,0,0.8)] bg-black/90 backdrop-blur-3xl border border-white/10 px-10 py-8 rounded-sm flex flex-col items-center justify-center text-center">
-                    <div className="text-[9px] font-black text-white/20 uppercase tracking-[0.5em] mb-3 italic hover:text-white/50 transition-colors cursor-pointer" onDoubleClick={(e) => { e.stopPropagation(); setEditingField({ id: currentMemory.id, field: 'year' }); setEditValue(new Date(currentMemory.date).getUTCFullYear().toString()); }}>
-                      {editingField?.id === currentMemory.id && editingField.field === 'year' ? <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => e.key === 'Enter' && saveEdit()} className="bg-transparent border-b border-white/30 text-white w-12 text-center outline-none" /> : <>Record {currentIndex + 1} // {new Date(currentMemory.date || Date.now()).getUTCFullYear()}</>}
-                    </div>
-                    <div className="text-2xl font-serif italic text-white tracking-widest truncate w-full group cursor-pointer" onDoubleClick={(e) => { e.stopPropagation(); setEditingField({ id: currentMemory.id, field: 'name' }); setEditValue(currentMemory.name); }}>
-                      {editingField?.id === currentMemory.id && editingField.field === 'name' ? <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => e.key === 'Enter' && saveEdit()} className="bg-transparent border-b border-white/30 text-white w-full text-center outline-none" /> : <span className="flex items-center justify-center gap-2" onClick={() => setIsFlipped(!isFlipped)}>{isFlipped ? (currentMemory.description || "Archival Inscription...") : currentMemory.name}<Edit3 className="w-3 h-3 opacity-20" /></span>}
-                    </div>
-                  </div>
-                </motion.div>
+                                {showUi && (
+
+                                  <motion.div 
+
+                                    initial={{ y: 150, opacity: 0 }}
+
+                                    animate={{ y: 0, opacity: 1 }} 
+
+                                    exit={{ y: 150, opacity: 0 }}
+
+                                    transition={{ duration: 0.3 }}
+
+                                    className="absolute bottom-12 left-1/2 -translate-x-1/2 perspective-1000 z-20"
+
+                                  >
+
+                                    <div className="relative w-96 min-h-[130px] shadow-[0_30px_60px_rgba(0,0,0,0.8)] bg-black/90 backdrop-blur-3xl border border-white/10 px-10 py-8 rounded-sm flex flex-col items-center justify-center text-center">
+
+                                      <div 
+
+                                        className="text-[9px] font-black text-white/20 uppercase tracking-[0.5em] mb-3 italic hover:text-white/50 transition-colors cursor-pointer" 
+
+                                        onDoubleClick={(e) => { e.stopPropagation(); setEditingField({ id: currentMemory.id, field: 'year' }); setEditValue(new Date(currentMemory.date).getUTCFullYear().toString()); }}
+
+                                      >
+
+                                        {editingField?.id === currentMemory.id && editingField.field === 'year' ? <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => e.key === 'Enter' && saveEdit()} className="bg-transparent border-b border-white/30 text-white w-12 text-center outline-none" /> : <>Record {currentIndex + 1} // {new Date(currentMemory.date || Date.now()).getUTCFullYear()}</>}
+
+                                      </div>
+
+                                      <div 
+
+                                        className="text-2xl font-serif italic text-white tracking-widest truncate w-full group cursor-pointer" 
+
+                                        onDoubleClick={(e) => { e.stopPropagation(); setEditingField({ id: currentMemory.id, field: 'name' }); setEditValue(currentMemory.name); }}
+
+                                      >
+
+                                        {editingField?.id === currentMemory.id && editingField.field === 'name' ? <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => e.key === 'Enter' && saveEdit()} className="bg-transparent border-b border-white/30 text-white w-full text-center outline-none" /> : <span className="flex items-center justify-center gap-2" onClick={() => setIsFlipped(!isFlipped)}>{isFlipped ? (currentMemory.description || "Archival Inscription...") : currentMemory.name}<Edit3 className="w-3 h-3 opacity-20" /></span>}
+
+                                      </div>
+
+                                    </div>
+
+                                  </motion.div>
+
+                                )}
 
                 <button onClick={() => { setCurrentIndex(p => (p - 1 + filteredMemories.length) % filteredMemories.length); }} className={`absolute left-8 top-1/2 -translate-y-1/2 p-6 text-white/10 hover:text-white transition-opacity duration-500 ${showUi ? 'opacity-100' : 'opacity-0'} pointer-events-auto`}><ChevronLeft className="w-16 h-16 stroke-[0.5]" /></button>
                 <button onClick={() => { setCurrentIndex(p => (p + 1) % filteredMemories.length); }} className={`absolute right-8 top-1/2 -translate-y-1/2 p-6 text-white/10 hover:text-white transition-opacity duration-700 ${showUi ? 'opacity-100' : 'opacity-0'} pointer-events-auto`}><ChevronRight className="w-16 h-16 stroke-[0.5]" /></button>
