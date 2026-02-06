@@ -21,7 +21,6 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
   const [showCli, setShowCli] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterPerson, setFilterPerson] = useState('');
-  const [isFlipped, setIsFlipped] = useState(false);
   const [transitionDuration, setTransitionDuration] = useState(0.2);
   
   const [overrides, setOverrides] = useState<Record<string, { name?: string, date?: string }>>({});
