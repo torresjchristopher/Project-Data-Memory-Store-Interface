@@ -1,5 +1,7 @@
 import JSZip from 'jszip';
 import type { MemoryTree } from '../types';
+import { ref, getDownloadURL } from 'firebase/storage';
+import { storage } from '../firebase';
 
 /**
  * ARCHIVE EXPORT SERVICE (OBSIDIAN EDITION)
@@ -40,10 +42,34 @@ class ExportServiceImpl {
       processedIds.add(memory.id);
 
       try {
-        console.log(`📡 [EXPORT] Attempting download: ${memory.name} from ${memory.photoUrl}`);
+        let fetchUrl = memory.photoUrl;
+        
+        // Resolve GCS URLs to Firebase Download URLs to bypass 403/CORS
+        if (fetchUrl.includes('storage.googleapis.com')) {
+          try {
+             // Extract path: https://storage.googleapis.com/BUCKET/artifacts/...
+             const urlObj = new URL(fetchUrl);
+             const pathParts = urlObj.pathname.split('/').slice(2); // Remove /BUCKET/
+             const storagePath = pathParts.join('/');
+             
+             // If manual parsing is tricky, try simply extracting everything after the bucket name
+             // Or better: rely on the known structure "artifacts/..."
+             const match = fetchUrl.match(/artifacts\/.+/);
+             if (match) {
+                 const path = match[0];
+                 const storageRef = ref(storage, path);
+                 fetchUrl = await getDownloadURL(storageRef);
+                 console.log(`🔄 [EXPORT] Resolved GCS URL to: ${fetchUrl}`);
+             }
+          } catch (e) {
+             console.warn(`⚠️ [EXPORT] URL resolution failed for ${memory.name}, using original`, e);
+          }
+        }
+
+        console.log(`📡 [EXPORT] Attempting download: ${memory.name} from ${fetchUrl}`);
         
         // Use the most basic fetch to avoid triggering CORS preflight/security blocks
-        const response = await fetch(memory.photoUrl, {
+        const response = await fetch(fetchUrl, {
             cache: 'no-cache'
         });
 
@@ -65,7 +91,7 @@ class ExportServiceImpl {
         const year = isNaN(yearVal) ? new Date().getUTCFullYear() : yearVal;
         
         let baseName = this.sanitize(memory.name || 'artifact');
-        const extension = this.getExt(memory.photoUrl);
+        const extension = this.getExt(fetchUrl); // Use resolved URL for ext
         
         // Strip duplicate extensions
         const dotIdx = baseName.lastIndexOf('.');

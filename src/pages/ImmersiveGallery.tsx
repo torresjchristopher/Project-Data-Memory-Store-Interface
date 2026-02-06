@@ -4,6 +4,65 @@ import type { MemoryTree, Memory } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import ArtifactCliTab from './tabs/ArtifactCliTab';
 import { PersistenceService } from '../services/PersistenceService';
+import { ref, getDownloadURL } from 'firebase/storage';
+import { storage } from '../firebase';
+
+// --- IMAGE COMPONENT FOR GCS RESOLUTION ---
+const ResolvedImage = ({ src, alt, className }: { src: string, alt?: string, className?: string }) => {
+  const [resolvedSrc, setResolvedSrc] = useState(src);
+
+  useEffect(() => {
+    let mounted = true;
+    const resolve = async () => {
+      if (src && src.includes('storage.googleapis.com')) {
+        try {
+          const match = src.match(/artifacts\/.+/);
+          if (match) {
+             const path = match[0];
+             const storageRef = ref(storage, path);
+             const url = await getDownloadURL(storageRef);
+             if (mounted) setResolvedSrc(url);
+          }
+        } catch (e) {
+          // Fallback to original
+        }
+      } else {
+        if (mounted) setResolvedSrc(src);
+      }
+    };
+    resolve();
+    return () => { mounted = false; };
+  }, [src]);
+
+  return <img src={resolvedSrc} alt={alt} className={className} />;
+};
+
+const ResolvedMotionImg = ({ src, className, ...props }: any) => {
+  const [resolvedSrc, setResolvedSrc] = useState(src);
+
+  useEffect(() => {
+    let mounted = true;
+    const resolve = async () => {
+      if (src && src.includes('storage.googleapis.com')) {
+        try {
+          const match = src.match(/artifacts\/.+/);
+          if (match) {
+             const path = match[0];
+             const storageRef = ref(storage, path);
+             const url = await getDownloadURL(storageRef);
+             if (mounted) setResolvedSrc(url);
+          }
+        } catch (e) { }
+      } else {
+        if (mounted) setResolvedSrc(src);
+      }
+    };
+    resolve();
+    return () => { mounted = false; };
+  }, [src]);
+
+  return <motion.img src={resolvedSrc} className={className} {...props} />;
+};
 
 interface ImmersiveGalleryProps {
   tree: MemoryTree;
@@ -250,7 +309,7 @@ export default function ImmersiveGallery({ tree, onExport, overrides, setOverrid
               <>
                 <div className="relative z-10 w-full h-full flex items-center justify-center p-20 md:p-32">
                   <AnimatePresence mode="wait">
-                    <motion.img 
+                    <ResolvedMotionImg 
                       key={currentMemory.id} 
                       src={currentMemory.photoUrl} 
                       initial={{ opacity: 0 }}
@@ -298,7 +357,7 @@ export default function ImmersiveGallery({ tree, onExport, overrides, setOverrid
               <div className="flex-1 overflow-y-auto p-10 pt-32 custom-scrollbar">
                 <div className={`grid ${getGridCols()} gap-6 max-w-[1800px] mx-auto pb-20`}>
                   {filteredMemories.map((m, idx) => (
-                    <motion.div key={m.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => { setCurrentIndex(idx); setViewMode('theatre'); }} className="aspect-[3/4] bg-white/[0.02] border border-white/5 rounded-sm overflow-hidden cursor-pointer group hover:border-white/20 transition-all shadow-xl"><img src={m.photoUrl} className="w-full h-full object-cover opacity-40 group-hover:opacity-100 grayscale transition-all duration-700" /></motion.div>
+                    <motion.div key={m.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => { setCurrentIndex(idx); setViewMode('theatre'); }} className="aspect-[3/4] bg-white/[0.02] border border-white/5 rounded-sm overflow-hidden cursor-pointer group hover:border-white/20 transition-all shadow-xl"><ResolvedImage src={m.photoUrl} className="w-full h-full object-cover opacity-40 group-hover:opacity-100 grayscale transition-all duration-700" /></motion.div>
                   ))}
                 </div>
               </div>
