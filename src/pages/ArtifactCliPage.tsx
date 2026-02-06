@@ -33,7 +33,7 @@ export default function ArtifactCliPage() {
               Enterprise-grade terminal interface for managing and ingesting artifacts into your Yukora archive
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a href="/downloads/artifact-cli.zip" download className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold px-8 py-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition">
+              <a href="./downloads/artifact-cli.zip" download className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold px-8 py-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition">
                 <Download className="w-5 h-5" />
                 Download Latest Release
               </a>
@@ -188,7 +188,7 @@ export default function ArtifactCliPage() {
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-3xl font-bold text-white mb-4">Ready to Ingest Your Archive?</h2>
             <p className="text-gray-400 mb-8">Download Artifact CLI and start preserving your family memories today</p>
-            <a href="/downloads/artifact-cli.zip" download className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold px-8 py-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition">
+            <a href="./downloads/artifact-cli.zip" download className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold px-8 py-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition">
               <Download className="w-5 h-5" />
               Download Now
             </a>

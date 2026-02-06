@@ -10,6 +10,7 @@ import { storage } from '../firebase';
 // --- IMAGE COMPONENT FOR GCS RESOLUTION ---
 const ResolvedImage = ({ src, alt, className }: { src: string, alt?: string, className?: string }) => {
   const [resolvedSrc, setResolvedSrc] = useState(src);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -24,21 +25,30 @@ const ResolvedImage = ({ src, alt, className }: { src: string, alt?: string, cla
              if (mounted) setResolvedSrc(url);
           }
         } catch (e) {
-          // Fallback to original
+          if (mounted) setHasError(true);
         }
       } else {
-        if (mounted) setResolvedSrc(src);
+        if (mounted) {
+            setResolvedSrc(src);
+            setHasError(false);
+        }
       }
     };
     resolve();
     return () => { mounted = false; };
   }, [src]);
 
-  return <img src={resolvedSrc} alt={alt} className={className} />;
+  return <img 
+    src={hasError ? '/assets/IMG_4268.png' : resolvedSrc} 
+    alt={alt} 
+    className={className} 
+    onError={() => setHasError(true)} 
+  />;
 };
 
 const ResolvedMotionImg = ({ src, className, ...props }: any) => {
   const [resolvedSrc, setResolvedSrc] = useState(src);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -52,16 +62,26 @@ const ResolvedMotionImg = ({ src, className, ...props }: any) => {
              const url = await getDownloadURL(storageRef);
              if (mounted) setResolvedSrc(url);
           }
-        } catch (e) { }
+        } catch (e) { 
+            if (mounted) setHasError(true);
+        }
       } else {
-        if (mounted) setResolvedSrc(src);
+        if (mounted) {
+            setResolvedSrc(src);
+            setHasError(false);
+        }
       }
     };
     resolve();
     return () => { mounted = false; };
   }, [src]);
 
-  return <motion.img src={resolvedSrc} className={className} {...props} />;
+  return <motion.img 
+    src={hasError ? '/assets/IMG_4268.png' : resolvedSrc} 
+    className={className} 
+    onError={() => setHasError(true)}
+    {...props} 
+  />;
 };
 
 interface ImmersiveGalleryProps {

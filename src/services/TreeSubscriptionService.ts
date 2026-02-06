@@ -36,6 +36,7 @@ export function subscribeToMemoryTree(
   const globalUnsub = onSnapshot(collection(db, 'trees', protocolKey, 'memories'), (snap) => {
     const memories = snap.docs.map(m => {
       const d = m.data();
+      console.log(`[FIREBASE] Global Artifact Discovered: ${m.id}`, d);
       // Extremely aggressive field matching for diverse CLI outputs
       let photoUrl = d.photoUrl || d.downloadUrl || d.url || d.fileUrl || d.imageUrl || d.src || 
                        d.PhotoUrl || d.Url || d.Image || d.ImageUrl || d.MediaUrl || d.mediaUrl ||
@@ -92,6 +93,7 @@ export function subscribeToMemoryTree(
       const unsub = onSnapshot(collection(db, 'trees', protocolKey, 'people', person.id, 'memories'), (memSnap) => {
         const memories = memSnap.docs.map((m) => {
           const d = m.data();
+          console.log(`[FIREBASE] Person Artifact Discovered: ${m.id} (Owner: ${person.name})`, d);
           // Extremely aggressive field matching for diverse CLI outputs
           let photoUrl = d.photoUrl || d.downloadUrl || d.url || d.fileUrl || d.imageUrl || d.src || 
                            d.PhotoUrl || d.Url || d.Image || d.ImageUrl || d.MediaUrl || d.mediaUrl ||
