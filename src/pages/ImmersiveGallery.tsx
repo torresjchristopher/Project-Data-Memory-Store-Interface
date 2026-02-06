@@ -32,7 +32,6 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
   const showUiRef = useRef(showUi);
 
   useEffect(() => { showUiRef.current = showUi; }, [showUi]);
-  useEffect(() => { setIsFlipped(false); }, [currentIndex]);
 
   // --- LOGIC: DATA MAPPING ---
   const localMemories = useMemo(() => {
