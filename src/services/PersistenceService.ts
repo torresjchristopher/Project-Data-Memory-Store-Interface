@@ -1,3 +1,5 @@
+import { doc, setDoc } from 'firebase/firestore';
+import { db as firestoreDb } from '../firebase';
 import type { Memory, Person } from '../types';
 
 /**
@@ -108,6 +110,27 @@ class PersistenceServiceImpl {
       throw new Error('Database failed to initialize');
     }
     return this.db;
+  }
+
+  /**
+   * Save memory directly to Firestore (Sync)
+   */
+  async saveMemorySync(memory: Memory, protocolKey: string): Promise<void> {
+    try {
+      // Direct write to the 'memories' subcollection of the tree
+      const memoryRef = doc(firestoreDb, 'trees', protocolKey, 'memories', memory.id);
+      await setDoc(memoryRef, {
+        name: memory.name,
+        date: memory.date,
+        description: memory.description || '',
+        location: memory.location || '',
+        content: memory.content || ''
+      }, { merge: true });
+      console.log(`✅ Artifact ${memory.id} synchronized to cloud.`);
+    } catch (err) {
+      console.error('Failed to sync memory to Firestore:', err);
+      throw err;
+    }
   }
 
   /**
