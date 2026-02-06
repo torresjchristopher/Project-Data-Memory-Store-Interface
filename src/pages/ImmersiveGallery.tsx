@@ -162,7 +162,6 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
       )}</AnimatePresence>
 
       <div className="relative z-10 w-full h-screen flex flex-col">
-        {/* HEADER */}
         <motion.header animate={{ y: showUi ? 0 : -100, opacity: showUi ? 1 : 0 }} className="fixed top-0 left-0 right-0 z-50 px-10 py-4 flex justify-between items-center pointer-events-none">
           <div className="pointer-events-auto flex flex-col items-start gap-0">
             <h1 className="text-lg font-serif font-bold text-white tracking-tighter uppercase italic leading-tight">Schnitzel Bank</h1>
@@ -203,7 +202,7 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
                       
                       <motion.div 
                         animate={{ 
-                          y: showUi ? 0 : 100, 
+                          y: showUi ? 0 : 150, 
                           opacity: showUi ? 1 : 0,
                           pointerEvents: showUi ? 'auto' : 'none' 
                         }} 
@@ -213,7 +212,7 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
                         <motion.div 
                           animate={{ rotateY: isFlipped ? 180 : 0 }} 
                           transition={{ duration: 0.8, type: "spring", stiffness: 100, damping: 20 }} 
-                          onClick={() => setIsFlipped(!isFlipped)}
+                          onClick={(e) => { e.stopPropagation(); setIsFlipped(!isFlipped); }}
                           className="relative w-96 min-h-[130px] cursor-pointer preserve-3d shadow-[0_30px_60px_rgba(0,0,0,0.8)]"
                         >
                           {/* CARD FRONT */}
