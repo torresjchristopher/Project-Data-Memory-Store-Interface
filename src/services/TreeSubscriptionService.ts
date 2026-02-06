@@ -37,10 +37,17 @@ export function subscribeToMemoryTree(
     const memories = snap.docs.map(m => {
       const d = m.data();
       // Extremely aggressive field matching for diverse CLI outputs
-      const photoUrl = d.photoUrl || d.downloadUrl || d.url || d.fileUrl || d.imageUrl || d.src || 
+      let photoUrl = d.photoUrl || d.downloadUrl || d.url || d.fileUrl || d.imageUrl || d.src || 
                        d.PhotoUrl || d.Url || d.Image || d.ImageUrl || d.MediaUrl || d.mediaUrl ||
                        d.file_url || d.image_url || d.download_url ||
                        d.media?.url || d.file?.url || d.storageUrl || d.storagePath || d.path;
+      
+      // Fallback: Check if URL is packed into content with |DELIM|
+      if (!photoUrl && d.content && d.content.includes('|DELIM|')) {
+        const parts = d.content.split('|DELIM|');
+        const possibleUrl = parts.find((p: string) => p.startsWith('http'));
+        if (possibleUrl) photoUrl = possibleUrl;
+      }
       
       const name = d.name || d.fileName || d.title || d.Title || d.Name || d.filename || 'Artifact';
       
@@ -85,10 +92,17 @@ export function subscribeToMemoryTree(
         const memories = memSnap.docs.map((m) => {
           const d = m.data();
           // Extremely aggressive field matching for diverse CLI outputs
-          const photoUrl = d.photoUrl || d.downloadUrl || d.url || d.fileUrl || d.imageUrl || d.src || 
+          let photoUrl = d.photoUrl || d.downloadUrl || d.url || d.fileUrl || d.imageUrl || d.src || 
                            d.PhotoUrl || d.Url || d.Image || d.ImageUrl || d.MediaUrl || d.mediaUrl ||
                            d.file_url || d.image_url || d.download_url ||
                            d.media?.url || d.file?.url || d.storageUrl || d.storagePath || d.path;
+
+          // Fallback: Check if URL is packed into content with |DELIM|
+          if (!photoUrl && d.content && d.content.includes('|DELIM|')) {
+            const parts = d.content.split('|DELIM|');
+            const possibleUrl = parts.find((p: string) => p.startsWith('http'));
+            if (possibleUrl) photoUrl = possibleUrl;
+          }
           
           const name = d.name || d.fileName || d.title || d.Title || d.Name || d.filename || 'Artifact';
 
