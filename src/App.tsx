@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import { PersistenceService } from './services/PersistenceService';
@@ -17,7 +17,7 @@ function App() {
   const [initError, setInitError] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(true);
 
-  // MASTER OVERRIDES: Global persistence for custom names and dates
+  // Global state for custom naming and dates
   const [overrides, setOverrides] = useState<Record<string, { name?: string, date?: string }>>(() => {
     const saved = localStorage.getItem('schnitzel_overrides');
     return saved ? JSON.parse(saved) : {};
@@ -58,25 +58,29 @@ function App() {
     }
 
     const unsub = subscribeToMemoryTree(MURRAY_PROTOCOL_KEY, (partial) => {
-      console.log('[FIREBASE] Sync Update received:', Object.keys(partial));
-      setMemoryTree((prev) => {
-        const next = {
-          ...prev,
-          ...partial,
-          protocolKey: MURRAY_PROTOCOL_KEY,
-          familyName: 'The Murray Family',
-        };
-        localStorage.setItem('schnitzel_snapshot', JSON.stringify(next));
-        return next;
-      });
+      setMemoryTree((prev) => ({
+        ...prev,
+        ...partial,
+        protocolKey: MURRAY_PROTOCOL_KEY,
+        familyName: 'The Murray Family',
+      }));
       setConnectionError(null); 
-      setIsSyncing(false);
+      // Stop syncing state only if we have memories or after we've received an update
+      if (partial.memories || partial.people) {
+        setIsSyncing(false);
+      }
     }, (error) => {
       setConnectionError(error.message || 'Access Restricted');
       setIsSyncing(false);
     });
 
-    return () => unsub();
+    // Safety timeout for sync state
+    const timer = setTimeout(() => setIsSyncing(false), 5000);
+
+    return () => {
+      unsub();
+      clearTimeout(timer);
+    };
   }, []);
 
   const handleExport = async (format: 'ZIP' | 'PDF', updatedTree?: MemoryTree) => {
@@ -90,6 +94,7 @@ function App() {
         downloadBlob(blob, `Murray_Archive_ZIP.zip`);
       }
     } catch (error) {
+      console.error("Export failed:", error);
       alert('Export failed. Check console for details.');
     }
   };
