@@ -45,7 +45,7 @@ export function subscribeToMemoryTree(
       const name = d.name || d.fileName || d.title || d.Title || d.Name || d.filename || 'Artifact';
       
       if (!photoUrl) {
-        console.warn(`[FIREBASE] Artifact ${m.id} has no valid photo URL. Fields found:`, Object.keys(d));
+        console.warn(`[FIREBASE] Artifact ${m.id} has no valid photo URL. Fields found:`, Object.keys(d), d);
       }
 
       return {
@@ -55,7 +55,7 @@ export function subscribeToMemoryTree(
         content: d.content || d.text || '',
         location: d.location || d.place || '',
         type: inferMemoryType(name),
-        photoUrl: photoUrl || '',
+        photoUrl: photoUrl || '/assets/IMG_4268.png', // Fallback to a valid local asset
         date: d.date || d.timestamp?.toDate?.()?.toISOString() || d.createdAt || new Date().toISOString(),
         tags: d.tags || { personIds: [FAMILY_ROOT_ID], isFamilyMemory: true },
       } as Memory;
@@ -93,7 +93,7 @@ export function subscribeToMemoryTree(
           const name = d.name || d.fileName || d.title || d.Title || d.Name || d.filename || 'Artifact';
 
           if (!photoUrl) {
-            console.warn(`[FIREBASE] Artifact ${m.id} for person ${person.id} has no valid photo URL. Fields found:`, Object.keys(d));
+            console.warn(`[FIREBASE] Artifact ${m.id} for person ${person.id} has no valid photo URL. Fields found:`, Object.keys(d), d);
           }
 
           return {
@@ -103,7 +103,7 @@ export function subscribeToMemoryTree(
             content: d.content || d.text || '',
             location: d.location || d.place || '',
             type: inferMemoryType(name),
-            photoUrl: photoUrl || '',
+            photoUrl: photoUrl || '/assets/IMG_4268.png', // Fallback to a valid local asset
             date: d.date || d.timestamp?.toDate?.()?.toISOString() || d.createdAt || new Date().toISOString(),
             tags: d.tags || { personIds: [person.id], isFamilyMemory: false },
           } as Memory;
