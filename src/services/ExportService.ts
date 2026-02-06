@@ -42,8 +42,10 @@ class ExportServiceImpl {
       try {
         console.log(`📡 [EXPORT] Attempting download: ${memory.name} from ${memory.photoUrl}`);
         
-        // Simpler fetch for public Firebase Storage URLs
-        const response = await fetch(memory.photoUrl);
+        // Use the most basic fetch to avoid triggering CORS preflight/security blocks
+        const response = await fetch(memory.photoUrl, {
+            cache: 'no-cache'
+        });
 
         if (!response.ok) throw new Error(`Fetch failed with status ${response.status}`);
         const blob = await response.blob();
