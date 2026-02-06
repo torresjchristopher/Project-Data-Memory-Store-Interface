@@ -4,6 +4,7 @@ import type { MemoryTree } from '../types';
 /**
  * ARCHIVE EXPORT SERVICE (OBSIDIAN EDITION)
  * Implements a high-caliber flat-folder structure for family preservation.
+ * Respects local overrides for Name and Era.
  * Fixes: Deep cache-busting to bypass CORS blocks and strict folder mapping.
  */
 
@@ -12,17 +13,18 @@ class ExportServiceImpl {
     tree: MemoryTree,
     _familyBio: string
   ): Promise<Blob> {
-    console.log("📂 [ARCHIVAL] Initializing Production Export...");
+    console.log("📂 [EXPORT] Initializing Production Archival Build...");
     const zip = new JSZip();
     const root = zip.folder("Schnitzel Bank Archive") || zip;
 
-    // 1. PRE-CREATE ALL PERSON FOLDERS
+    // 1. PRE-CREATE ALL FOLDERS AT THE ROOT
     const familyFolder = root.folder("The Murray Family");
     const personFolderMap = new Map<string, JSZip>();
 
     (tree.people || []).forEach(person => {
       if (person.id !== 'FAMILY_ROOT' && person.name !== 'Murray Archive') {
-        const folder = root.folder(this.sanitize(person.name));
+        const folderName = this.sanitize(person.name);
+        const folder = root.folder(folderName);
         if (folder) personFolderMap.set(String(person.id), folder);
       }
     });
@@ -30,16 +32,14 @@ class ExportServiceImpl {
     const processedIds = new Set<string>();
     let successCount = 0;
 
-    // 2. RESILIENT ARCHIVAL FETCH
+    // 2. RESILIENT ARCHIVAL CAPTURE
     const downloadPromises = (tree.memories || []).map(async (memory) => {
       if (!memory.photoUrl || processedIds.has(memory.id)) return;
       processedIds.add(memory.id);
 
       try {
-        // DEEP CACHE-BUSTER: Append unique timestamp to bypass 'stale' CORS blocks in browser CDN cache
-        const archivalUrl = `${memory.photoUrl}${memory.photoUrl.includes('?') ? '&' : '?'}_cors_bust=${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-        
-        console.log(`📡 [EXPORT] Capturing: ${memory.name}`);
+        // DEEP CACHE-BUSTER: Append unique timestamp to bypass 'stale' CORS blocks in browser cache
+        const archivalUrl = `${memory.photoUrl}${memory.photoUrl.includes('?') ? '&' : '?'}_archive_burst=${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
         
         const response = await fetch(archivalUrl, {
           method: 'GET',
@@ -57,15 +57,15 @@ class ExportServiceImpl {
           targetFolder = personFolderMap.get(primaryId) || familyFolder;
         }
 
-        // Filename: [YEAR]_[NAME].[EXT]
+        // --- FILENAME GENERATION ---
         const year = new Date(memory.date || Date.now()).getUTCFullYear();
         let baseName = this.sanitize(memory.name || 'artifact');
         const extension = this.getExt(memory.photoUrl);
         
-        // Remove double extensions
-        const dotIdx = baseName.lastIndexOf('.');
-        if (dotIdx !== -1 && baseName.substring(dotIdx).length < 6) {
-          baseName = baseName.substring(0, dotIdx);
+        // Strip existing extensions from custom names
+        const lastDot = baseName.lastIndexOf('.');
+        if (lastDot !== -1 && baseName.substring(lastDot).length < 6) {
+          baseName = baseName.substring(0, lastDot);
         }
 
         const fileName = `${year}_${baseName}${extension}`;
@@ -80,7 +80,7 @@ class ExportServiceImpl {
     });
 
     await Promise.all(downloadPromises);
-    console.log(`📦 [EXPORT] ZIP Composition Finished. ${successCount} items archived.`);
+    console.log(`📦 [COMPLETED] ZIP composed with ${successCount} artifacts.`);
 
     return await zip.generateAsync({
       type: 'blob',
@@ -96,8 +96,11 @@ class ExportServiceImpl {
   private getExt(url: string): string {
     try {
       const cleanUrl = url.split('?')[0];
-      const ext = cleanUrl.split('.').pop()?.toLowerCase();
-      if (ext && ext.length < 5) return `.${ext}`;
+      const parts = cleanUrl.split('.');
+      if (parts.length > 1) {
+        const ext = parts.pop()?.toLowerCase();
+        if (ext && ext.length < 5) return `.${ext}`;
+      }
     } catch(e) {}
     return '.jpg';
   }
