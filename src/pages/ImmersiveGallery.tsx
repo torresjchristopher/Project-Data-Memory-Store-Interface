@@ -76,7 +76,7 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
         return (person?.name || '').toLowerCase().includes(q);
       });
 
-      return hasPersonMatch;
+      return textMatch || year.includes(q) || tags.some(t => String(t || '').toLowerCase().includes(q)) || hasPersonMatch;
     });
   }, [localMemories, filterPerson, searchQuery, tree?.people]);
 
