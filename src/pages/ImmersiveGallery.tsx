@@ -401,7 +401,6 @@ export default function ImmersiveGallery({ tree, onExport, overrides, setOverrid
           )}
         </AnimatePresence>
       </div>
-      </div>
     </div>
   );
 }
