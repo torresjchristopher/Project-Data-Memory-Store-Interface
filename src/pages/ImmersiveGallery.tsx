@@ -155,15 +155,11 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
       )}</AnimatePresence>
 
       <div className="relative z-10 w-full h-screen flex flex-col">
-        <motion.header animate={{ y: showUi ? 0 : -100, opacity: showUi ? 1 : 0 }} className="fixed top-0 left-0 right-0 z-50 px-10 py-4 flex justify-between items-center pointer-events-none">
-          <div className="pointer-events-auto flex items-center gap-3">
-            <div className="w-8 h-8 bg-white rounded-sm flex items-center justify-center font-serif font-black text-black text-lg italic shadow-2xl">S</div>
-            <div className="flex items-baseline gap-3">
-              <h1 className="text-lg font-serif font-bold text-white tracking-tighter uppercase italic leading-none">Schnitzel Bank</h1>
-              <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.4em] leading-none whitespace-nowrap">The Murray Family</span>
-            </div>
-          </div>
-
+                  <motion.header animate={{ y: showUi ? 0 : -100, opacity: showUi ? 1 : 0 }} className="fixed top-0 left-0 right-0 z-50 px-10 py-4 flex justify-between items-center pointer-events-none">
+                    <div className="pointer-events-auto flex flex-col items-start gap-0">
+                      <h1 className="text-lg font-serif font-bold text-white tracking-tighter uppercase italic leading-tight">Schnitzel Bank</h1>
+                      <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.4em] leading-tight">The Murray Family</span>
+                    </div>
           <div className="pointer-events-auto flex items-center gap-6 bg-black/60 backdrop-blur-2xl border border-white/5 rounded-full px-6 py-2 shadow-2xl">
             <Search className="w-3 h-3 text-white/20" />
             <input 
