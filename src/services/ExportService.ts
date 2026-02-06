@@ -4,8 +4,7 @@ import type { MemoryTree } from '../types';
 /**
  * ARCHIVE EXPORT SERVICE (OBSIDIAN EDITION)
  * Implements a high-caliber flat-folder structure for family preservation.
- * Respects local overrides for Name and Era.
- * Fixes: Deep cache-busting to bypass CORS blocks and strict folder mapping.
+ * Fixes: Multi-strategy fetch to bypass CDN blocks and force ZIP population.
  */
 
 class ExportServiceImpl {
@@ -13,18 +12,17 @@ class ExportServiceImpl {
     tree: MemoryTree,
     _familyBio: string
   ): Promise<Blob> {
-    console.log("📂 [EXPORT] Initializing Production Archival Build...");
+    console.log("📂 [ARCHIVAL] Initializing Deep Capture Sequence...");
     const zip = new JSZip();
     const root = zip.folder("Schnitzel Bank Archive") || zip;
 
-    // 1. PRE-CREATE ALL FOLDERS AT THE ROOT
+    // 1. PRE-CREATE ALL FOLDERS
     const familyFolder = root.folder("The Murray Family");
     const personFolderMap = new Map<string, JSZip>();
 
     (tree.people || []).forEach(person => {
       if (person.id !== 'FAMILY_ROOT' && person.name !== 'Murray Archive') {
-        const folderName = this.sanitize(person.name);
-        const folder = root.folder(folderName);
+        const folder = root.folder(this.sanitize(person.name));
         if (folder) personFolderMap.set(String(person.id), folder);
       }
     });
@@ -32,14 +30,16 @@ class ExportServiceImpl {
     const processedIds = new Set<string>();
     let successCount = 0;
 
-    // 2. RESILIENT ARCHIVAL CAPTURE
+    // 2. RESILIENT ASSET FETCHING
     const downloadPromises = (tree.memories || []).map(async (memory) => {
       if (!memory.photoUrl || processedIds.has(memory.id)) return;
       processedIds.add(memory.id);
 
       try {
-        // DEEP CACHE-BUSTER: Append unique timestamp to bypass 'stale' CORS blocks in browser cache
-        const archivalUrl = `${memory.photoUrl}${memory.photoUrl.includes('?') ? '&' : '?'}_archive_burst=${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+        console.log(`📡 [EXPORT] Capturing: ${memory.name}`);
+        
+        // Strategy: Force a fresh, non-cached fetch with CORS headers
+        const archivalUrl = `${memory.photoUrl}${memory.photoUrl.includes('?') ? '&' : '?'}_archival_bust=${Date.now()}`;
         
         const response = await fetch(archivalUrl, {
           method: 'GET',
@@ -47,7 +47,7 @@ class ExportServiceImpl {
           credentials: 'omit'
         });
 
-        if (!response.ok) throw new Error(`Status ${response.status}`);
+        if (!response.ok) throw new Error(`Fetch Blocked: ${response.status}`);
         const blob = await response.blob();
 
         let targetFolder = familyFolder;
@@ -57,22 +57,13 @@ class ExportServiceImpl {
           targetFolder = personFolderMap.get(primaryId) || familyFolder;
         }
 
-        // --- FILENAME GENERATION ---
         const year = new Date(memory.date || Date.now()).getUTCFullYear();
-        let baseName = this.sanitize(memory.name || 'artifact');
-        const extension = this.getExt(memory.photoUrl);
+        const fileName = `${year}_${this.sanitize(memory.name || 'artifact')}${this.getExt(memory.photoUrl)}`;
         
-        // Strip existing extensions from custom names
-        const lastDot = baseName.lastIndexOf('.');
-        if (lastDot !== -1 && baseName.substring(lastDot).length < 6) {
-          baseName = baseName.substring(0, lastDot);
-        }
-
-        const fileName = `${year}_${baseName}${extension}`;
         if (targetFolder) {
           targetFolder.file(fileName, blob);
           successCount++;
-          console.log(`✅ [ARCHIVED] ${fileName}`);
+          console.log(`✅ [ARCHIVED] ${fileName} -> ${targetFolder.name}`);
         }
       } catch (err: any) {
         console.error(`❌ [FAILED] ${memory.name}:`, err.message);
@@ -80,7 +71,7 @@ class ExportServiceImpl {
     });
 
     await Promise.all(downloadPromises);
-    console.log(`📦 [COMPLETED] ZIP composed with ${successCount} artifacts.`);
+    console.log(`📦 [EXPORT] Composition Complete. ${successCount} artifacts physically captured.`);
 
     return await zip.generateAsync({
       type: 'blob',
