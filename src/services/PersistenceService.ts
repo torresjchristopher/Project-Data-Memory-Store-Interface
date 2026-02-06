@@ -117,8 +117,20 @@ class PersistenceServiceImpl {
    */
   async saveMemorySync(memory: Memory, protocolKey: string): Promise<void> {
     try {
-      // Direct write to the 'memories' subcollection of the tree
-      const memoryRef = doc(firestoreDb, 'trees', protocolKey, 'memories', memory.id);
+      const isFamily = memory.tags?.isFamilyMemory;
+      const personId = memory.tags?.personIds?.[0];
+      
+      let memoryRef;
+      if (isFamily || !personId || personId === 'FAMILY_ROOT') {
+        // Global path
+        memoryRef = doc(firestoreDb, 'trees', protocolKey, 'memories', memory.id);
+      } else {
+        // Person-specific path
+        memoryRef = doc(firestoreDb, 'trees', protocolKey, 'people', personId, 'memories', memory.id);
+      }
+
+      console.log(`📡 Syncing to cloud path: ${memoryRef.path}`);
+
       await setDoc(memoryRef, {
         name: memory.name,
         date: memory.date,
@@ -126,6 +138,7 @@ class PersistenceServiceImpl {
         location: memory.location || '',
         content: memory.content || ''
       }, { merge: true });
+      
       console.log(`✅ Artifact ${memory.id} synchronized to cloud.`);
     } catch (err: any) {
       console.error('🔥 Cloud Sync Failed:', err);
