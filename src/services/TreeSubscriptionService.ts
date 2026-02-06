@@ -19,35 +19,32 @@ export function subscribeToMemoryTree(
   onUpdate: (partial: Partial<MemoryTree>) => void,
   onError?: (error: any) => void
 ): Unsubscribe {
-  console.log(`[FIREBASE] Connecting to DB Instance...`);
+  console.log(`[FIREBASE] Initializing Archival Stream...`);
   
   let memoryUnsubs: Unsubscribe[] = [];
   const memoriesBySource = new Map<string, Memory[]>();
 
   const updateCombinedMemories = () => {
     const combined = Array.from(memoriesBySource.values()).flat();
+    console.log(`[FIREBASE] Total fragments discovered: ${combined.length}`);
     onUpdate({ memories: combined });
   };
 
-  // 1. Subscribe to Global Memories
+  // 1. Global Memories
   const globalUnsub = onSnapshot(collection(db, 'trees', protocolKey, 'memories'), (snap) => {
     const memories = snap.docs.map(m => {
       const d = m.data();
-      // ULTRA-ROBUST FIELD DISCOVERY
       const photoUrl = d.photoUrl || d.downloadUrl || d.url || d.fileUrl || d.imageUrl || d.src || d.PhotoUrl || d.Url || d.Image;
       const name = d.name || d.fileName || d.title || d.Title || d.Name || 'Artifact';
-      const desc = d.description || d.desc || d.notes || d.Note || d.Description || '';
-      const date = d.date || d.timestamp?.toDate?.()?.toISOString() || d.createdAt || new Date().toISOString();
-
       return {
         id: m.id,
         name: name,
-        description: desc,
+        description: d.description || d.desc || d.notes || '',
         content: d.content || d.text || '',
         location: d.location || d.place || '',
         type: inferMemoryType(name),
         photoUrl: photoUrl || '',
-        date: date,
+        date: d.date || d.timestamp?.toDate?.()?.toISOString() || d.createdAt || new Date().toISOString(),
         tags: d.tags || { personIds: [FAMILY_ROOT_ID], isFamilyMemory: true },
       } as Memory;
     });
@@ -55,7 +52,7 @@ export function subscribeToMemoryTree(
     updateCombinedMemories();
   }, (err) => onError && onError(err));
 
-  // 2. Subscribe to People
+  // 2. People & Person-Specific Memories
   const peopleUnsub = onSnapshot(collection(db, 'trees', protocolKey, 'people'), (peopleSnap) => {
     const people = peopleSnap.docs.map((doc) => ({
       id: doc.id,
@@ -63,40 +60,33 @@ export function subscribeToMemoryTree(
       ...doc.data(),
     })) as Person[];
 
+    console.log(`[FIREBASE] Subjects found: ${people.length}`);
     onUpdate({ people: [{ id: FAMILY_ROOT_ID, name: 'Murray Archive' }, ...people] });
 
-    // Rebuild person-specific memory listeners
     memoryUnsubs.forEach((u) => u());
     memoryUnsubs = [];
 
     people.forEach((person) => {
-      const unsub = onSnapshot(
-        collection(db, 'trees', protocolKey, 'people', person.id, 'memories'),
-        (memSnap) => {
-          const memories = memSnap.docs.map((m) => {
-            const d = m.data();
-            const photoUrl = d.photoUrl || d.downloadUrl || d.url || d.fileUrl || d.imageUrl || d.src || d.PhotoUrl || d.Url || d.Image;
-            const name = d.name || d.fileName || d.title || d.Title || d.Name || 'Artifact';
-            const desc = d.description || d.desc || d.notes || d.Note || d.Description || '';
-            const date = d.date || d.timestamp?.toDate?.()?.toISOString() || d.createdAt || new Date().toISOString();
-
-            return {
-              id: m.id,
-              name: name,
-              description: desc,
-              content: d.content || d.text || '',
-              location: d.location || d.place || '',
-              type: inferMemoryType(name),
-              photoUrl: photoUrl || '',
-              date: date,
-              tags: d.tags || { personIds: [person.id], isFamilyMemory: false },
-            } as Memory;
-          });
-          memoriesBySource.set(person.id, memories);
-          updateCombinedMemories();
-        },
-        (err) => onError && onError(err)
-      );
+      const unsub = onSnapshot(collection(db, 'trees', protocolKey, 'people', person.id, 'memories'), (memSnap) => {
+        const memories = memSnap.docs.map((m) => {
+          const d = m.data();
+          const photoUrl = d.photoUrl || d.downloadUrl || d.url || d.fileUrl || d.imageUrl || d.src || d.PhotoUrl || d.Url || d.Image;
+          const name = d.name || d.fileName || d.title || d.Title || d.Name || 'Artifact';
+          return {
+            id: m.id,
+            name: name,
+            description: d.description || d.desc || d.notes || '',
+            content: d.content || d.text || '',
+            location: d.location || d.place || '',
+            type: inferMemoryType(name),
+            photoUrl: photoUrl || '',
+            date: d.date || d.timestamp?.toDate?.()?.toISOString() || d.createdAt || new Date().toISOString(),
+            tags: d.tags || { personIds: [person.id], isFamilyMemory: false },
+          } as Memory;
+        });
+        memoriesBySource.set(person.id, memories);
+        updateCombinedMemories();
+      });
       memoryUnsubs.push(unsub);
     });
   }, (err) => onError && onError(err));
