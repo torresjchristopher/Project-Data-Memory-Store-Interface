@@ -5,6 +5,7 @@ import type { MemoryTree } from '../types';
  * ARCHIVE EXPORT SERVICE (OBSIDIAN EDITION)
  * Implements a high-caliber flat-folder structure for family preservation.
  * Respects local overrides for Name and Era.
+ * Fixes: Robust cross-origin fetch for ZIP population.
  */
 
 class ExportServiceImpl {
@@ -16,49 +17,51 @@ class ExportServiceImpl {
     _familyBio: string
   ): Promise<Blob> {
     const zip = new JSZip();
-    const root = zip.folder("Schnitzel Bank Archive");
-    if (!root) throw new Error("Could not create ZIP root");
+    const rootFolder = zip.folder("Schnitzel Bank Archive");
+    if (!rootFolder) throw new Error("Could not create ZIP root");
 
-    const familyFolder = root.folder("The Murray Family");
+    const familyFolder = rootFolder.folder("The Murray Family");
     
     const processedIds = new Set<string>();
 
-    const downloadPromises = tree.memories.map(async (memory) => {
+    const downloadPromises = (tree.memories || []).map(async (memory) => {
       if (!memory.photoUrl || processedIds.has(memory.id)) return;
       processedIds.add(memory.id);
 
       try {
-        const response = await fetch(memory.photoUrl);
+        // Robust fetch with cross-origin considerations
+        const response = await fetch(memory.photoUrl, { mode: 'cors' });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const blob = await response.blob();
 
         let targetFolder = familyFolder;
         
-        if (!memory.tags.isFamilyMemory && memory.tags.personIds.length > 0) {
-          const personId = memory.tags.personIds[0];
+        // Person-specific folders
+        const personIds = memory.tags?.personIds || [];
+        if (!memory.tags?.isFamilyMemory && personIds.length > 0) {
+          const personId = personIds[0];
           const person = tree.people.find(p => p.id === personId);
           if (person && person.id !== 'FAMILY_ROOT') {
-            targetFolder = root.folder(person.name) || familyFolder;
+            // Create or get the person's folder
+            targetFolder = rootFolder.folder(person.name) || familyFolder;
           }
         }
 
-        // Use the memory name and year for the filename
+        // Sanitize and name the file
         const year = new Date(memory.date).getFullYear();
         let baseName = this.sanitizeFileName(memory.name || 'artifact');
         const sourceExt = this.getExtension(memory.photoUrl);
         
-        // If the baseName already ends with the same extension or a different one, strip it
-        // to avoid name.jpg.jpg or Murray.web.jpg
+        // Strip existing extensions to prevent double-extensions
         const lastDotIndex = baseName.lastIndexOf('.');
-        if (lastDotIndex !== -1) {
+        if (lastDotIndex !== -1 && baseName.substring(lastDotIndex).length < 6) {
           baseName = baseName.substring(0, lastDotIndex);
         }
 
         const fileName = `${year}_${baseName}${sourceExt}`;
-        
         targetFolder?.file(fileName, blob);
       } catch (err) {
-        console.error(`Failed to download artifact: ${memory.name}`, err);
+        console.error(`Failed to export artifact: ${memory.name}`, err);
       }
     });
 
@@ -76,12 +79,14 @@ class ExportServiceImpl {
   }
 
   private getExtension(url: string): string {
-    const cleanUrl = url.split('?')[0];
-    const parts = cleanUrl.split('.');
-    if (parts.length > 1) {
-      const ext = parts.pop()?.toLowerCase();
-      return ext ? `.${ext}` : '.jpg';
-    }
+    try {
+      const cleanUrl = url.split('?')[0];
+      const parts = cleanUrl.split('.');
+      if (parts.length > 1) {
+        const ext = parts.pop()?.toLowerCase();
+        return ext ? `.${ext}` : '.jpg';
+      }
+    } catch(e) {}
     return '.jpg';
   }
 }

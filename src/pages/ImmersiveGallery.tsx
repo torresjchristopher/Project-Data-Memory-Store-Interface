@@ -29,6 +29,10 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
 
   const hideTimerRef = useRef<any>(null);
   const cycleIntervalRef = useRef<any>(null);
+  
+  // Ref to track current showUi for the interval without re-running effect
+  const showUiRef = useRef(showUi);
+  useEffect(() => { showUiRef.current = showUi; }, [showUi]);
 
   // --- LOGIC: DATA MAPPING ---
   const localMemories = useMemo(() => {
@@ -61,6 +65,7 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
       );
       const year = m.date ? new Date(m.date).getFullYear().toString() : '';
       const tags = Array.isArray(m.tags?.customTags) ? m.tags.customTags : [];
+      
       const hasPersonMatch = personIds.some(pid => {
         const person = tree?.people?.find(p => String(p.id) === String(pid));
         return (person?.name || '').toLowerCase().includes(q);
@@ -87,9 +92,11 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
           hideTimerRef.current = setTimeout(() => setShowUi(false), 3000);
         }
       }
+      
+      // Auto-Cycle (10s idle) - Reference showUiRef to avoid re-triggering this effect
       if (viewMode === 'theatre' && !editingField && !showCli) {
         cycleIntervalRef.current = setInterval(() => {
-          if (!showUi && filteredMemories.length > 1) {
+          if (!showUiRef.current && filteredMemories.length > 1) {
             setTransitionDuration(1.5);
             setCurrentIndex(prev => (prev + 1) % filteredMemories.length);
           }
@@ -106,7 +113,7 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
         e.preventDefault();
         setTransitionDuration(0.2);
         setCurrentIndex(prev => (e.key === 'ArrowLeft' ? (prev - 1 + filteredMemories.length) % filteredMemories.length : (prev + 1) % filteredMemories.length));
-        startTimers(false); 
+        startTimers(false); // Navigation does NOT show menus
       } else {
         startTimers(true);
       }
@@ -121,7 +128,7 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
       window.removeEventListener('keydown', handleKeys);
       clearTimers();
     };
-  }, [viewMode, editingField, filteredMemories.length, showUi, showCli]);
+  }, [viewMode, editingField, filteredMemories.length, showCli]);
 
   useEffect(() => {
     if (currentIndex >= filteredMemories.length && filteredMemories.length > 0) setCurrentIndex(0);
@@ -140,7 +147,6 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
     <div className="min-h-screen bg-black text-white font-sans overflow-hidden relative selection:bg-white/10">
       <div className="absolute inset-0 bg-noise opacity-20 pointer-events-none z-0"></div>
       
-      {/* People Prediction List */}
       <datalist id="people-list">
         {tree?.people?.map(p => <option key={p.id} value={p.name} />)}
       </datalist>
@@ -155,21 +161,15 @@ export default function ImmersiveGallery({ tree, onExport }: ImmersiveGalleryPro
       )}</AnimatePresence>
 
       <div className="relative z-10 w-full h-screen flex flex-col">
-                  <motion.header animate={{ y: showUi ? 0 : -100, opacity: showUi ? 1 : 0 }} className="fixed top-0 left-0 right-0 z-50 px-10 py-4 flex justify-between items-center pointer-events-none">
-                    <div className="pointer-events-auto flex flex-col items-start gap-0">
-                      <h1 className="text-lg font-serif font-bold text-white tracking-tighter uppercase italic leading-tight">Schnitzel Bank</h1>
-                      <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.4em] leading-tight">The Murray Family</span>
-                    </div>
+        <motion.header animate={{ y: showUi ? 0 : -100, opacity: showUi ? 1 : 0 }} className="fixed top-0 left-0 right-0 z-50 px-10 py-4 flex justify-between items-center pointer-events-none">
+          <div className="pointer-events-auto flex flex-col items-start gap-0">
+            <h1 className="text-lg font-serif font-bold text-white tracking-tighter uppercase italic leading-tight">Schnitzel Bank</h1>
+            <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.4em] leading-tight">The Murray Family</span>
+          </div>
+
           <div className="pointer-events-auto flex items-center gap-6 bg-black/60 backdrop-blur-2xl border border-white/5 rounded-full px-6 py-2 shadow-2xl">
             <Search className="w-3 h-3 text-white/20" />
-            <input 
-              type="text" 
-              list="people-list"
-              placeholder="SEARCH..." 
-              value={searchQuery} 
-              onChange={(e) => { setSearchQuery(e.target.value); setCurrentIndex(0); }} 
-              className="w-32 md:w-48 bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-white focus:ring-0 placeholder:text-white/10 p-0" 
-            />
+            <input type="text" list="people-list" placeholder="SEARCH..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentIndex(0); }} className="w-32 md:w-48 bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-white focus:ring-0 placeholder:text-white/10 p-0" />
             <div className="w-px h-4 bg-white/10" />
             <select value={filterPerson} onChange={(e) => { setFilterPerson(e.target.value); setCurrentIndex(0); }} className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-white/40 focus:ring-0 cursor-pointer p-0 pr-4">
               <option value="">SUBJECTS</option>
