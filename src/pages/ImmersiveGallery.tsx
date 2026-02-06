@@ -3,7 +3,7 @@ import {
   Download, Terminal, Search, ChevronLeft, ChevronRight, 
   X, Grid, Maximize2, Lock, Edit3
 } from 'lucide-react';
-import type { MemoryTree, Memory } from '../types';
+import type { MemoryTree } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import ArtifactCliTab from './tabs/ArtifactCliTab';
 import { PersistenceService } from '../services/PersistenceService';
