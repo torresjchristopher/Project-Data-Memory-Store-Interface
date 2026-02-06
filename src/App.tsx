@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import { PersistenceService } from './services/PersistenceService';
@@ -12,12 +12,20 @@ import ImmersiveGallery from './pages/ImmersiveGallery';
 const MURRAY_PROTOCOL_KEY = "MURRAY_LEGACY_2026";
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('schnitzel_session') === 'active';
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState(() => localStorage.getItem('schnitzel_session') === 'active');
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(true);
+
+  // MASTER OVERRIDES: Global persistence for custom names and dates
+  const [overrides, setOverrides] = useState<Record<string, { name?: string, date?: string }>>(() => {
+    const saved = localStorage.getItem('schnitzel_overrides');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  useEffect(() => {
+    localStorage.setItem('schnitzel_overrides', JSON.stringify(overrides));
+  }, [overrides]);
 
   const [memoryTree, setMemoryTree] = useState<MemoryTree>(() => {
     try {
@@ -50,16 +58,13 @@ function App() {
     }
 
     const unsub = subscribeToMemoryTree(MURRAY_PROTOCOL_KEY, (partial) => {
-      setMemoryTree((prev) => {
-        const next = {
-          ...prev,
-          ...partial,
-          protocolKey: MURRAY_PROTOCOL_KEY,
-          familyName: 'The Murray Family',
-        };
-        localStorage.setItem('schnitzel_snapshot', JSON.stringify(next));
-        return next;
-      });
+      console.log('[FIREBASE] Sync Update:', Object.keys(partial));
+      setMemoryTree((prev) => ({
+        ...prev,
+        ...partial,
+        protocolKey: MURRAY_PROTOCOL_KEY,
+        familyName: 'The Murray Family',
+      }));
       setConnectionError(null); 
       setIsSyncing(false);
     }, (error) => {
@@ -72,48 +77,40 @@ function App() {
 
   const handleExport = async (format: 'ZIP' | 'PDF', updatedTree?: MemoryTree) => {
     try {
-      let blob: Blob;
       const treeToExport = updatedTree || memoryTree;
       if (format === 'PDF') {
-        blob = await MemoryBookPdfService.generateMemoryBook(treeToExport, treeToExport.familyName);
+        const blob = await MemoryBookPdfService.generateMemoryBook(treeToExport, treeToExport.familyName);
+        downloadBlob(blob, `Murray_Archive_PDF.pdf`);
       } else {
-        blob = await ExportService.getInstance().exportAsZip(treeToExport, '');
+        const blob = await ExportService.getInstance().exportAsZip(treeToExport, '');
+        downloadBlob(blob, `Murray_Archive_ZIP.zip`);
       }
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Murray_Archive_${format}_${new Date().toISOString().split('T')[0]}.${format.toLowerCase()}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
     } catch (error) {
-      alert('Export failed.');
+      alert('Export failed. Check console for details.');
     }
   };
 
-  if (initError) {
-    return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-12 text-center text-white">
-        <h1 className="text-2xl mb-4 font-serif italic">Vault Error</h1>
-        <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="px-6 py-2 bg-white text-black">Reset Node</button>
-      </div>
-    );
-  }
+  const downloadBlob = (blob: Blob, name: string) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  if (initError) return <div className="bg-black min-h-screen text-white flex items-center justify-center p-12 text-center"><button onClick={() => { localStorage.clear(); window.location.reload(); }} className="bg-white text-black px-8 py-3 font-black">RESET VAULT</button></div>;
 
   return (
     <HashRouter>
       {!isAuthenticated ? (
-        <LandingPage 
-          onUnlock={handleUnlock} 
-          itemCount={memoryTree?.memories?.length || 0} 
-          error={connectionError}
-          isSyncing={isSyncing}
-        />
+        <LandingPage onUnlock={handleUnlock} itemCount={memoryTree?.memories?.length || 0} error={connectionError} isSyncing={isSyncing} />
       ) : (
         <Routes>
           <Route path="/" element={<Navigate to="/archive" replace />} />
-          <Route path="/archive" element={<ImmersiveGallery tree={memoryTree} onExport={handleExport} />} />
+          <Route path="/archive" element={<ImmersiveGallery tree={memoryTree} onExport={handleExport} overrides={overrides} setOverrides={setOverrides} />} />
           <Route path="*" element={<Navigate to="/archive" replace />} />
         </Routes>
       )}
