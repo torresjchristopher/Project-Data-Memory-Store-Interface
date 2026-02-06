@@ -127,8 +127,10 @@ class PersistenceServiceImpl {
         content: memory.content || ''
       }, { merge: true });
       console.log(`✅ Artifact ${memory.id} synchronized to cloud.`);
-    } catch (err) {
-      console.error('Failed to sync memory to Firestore:', err);
+    } catch (err: any) {
+      console.error('🔥 Cloud Sync Failed:', err);
+      console.error('Error Code:', err.code);
+      console.error('Error Message:', err.message);
       throw err;
     }
   }

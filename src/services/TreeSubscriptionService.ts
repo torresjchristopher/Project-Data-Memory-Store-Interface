@@ -19,7 +19,8 @@ export function subscribeToMemoryTree(
   onUpdate: (partial: Partial<MemoryTree>) => void,
   onError?: (error: any) => void
 ): Unsubscribe {
-  console.log(`[FIREBASE] Starting subscription for: ${protocolKey}`);
+  console.log(`[FIREBASE] Connecting to DB: ${db.type} / ${db.app.options.projectId}`);
+  console.log(`[FIREBASE] Subscription Protocol: ${protocolKey}`);
   
   let memoryUnsubs: Unsubscribe[] = [];
   const memoriesBySource = new Map<string, Memory[]>();
