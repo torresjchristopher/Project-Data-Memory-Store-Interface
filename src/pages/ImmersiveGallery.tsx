@@ -311,7 +311,7 @@ export default function ImmersiveGallery({ tree, onExport, overrides, setOverrid
                   <AnimatePresence mode="wait">
                     <ResolvedMotionImg 
                       key={currentMemory.id} 
-                      src={currentMemory.photoUrl} 
+                      src={currentMemory.photoUrl || ''} 
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
@@ -357,7 +357,7 @@ export default function ImmersiveGallery({ tree, onExport, overrides, setOverrid
               <div className="flex-1 overflow-y-auto p-10 pt-32 custom-scrollbar">
                 <div className={`grid ${getGridCols()} gap-6 max-w-[1800px] mx-auto pb-20`}>
                   {filteredMemories.map((m, idx) => (
-                    <motion.div key={m.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => { setCurrentIndex(idx); setViewMode('theatre'); }} className="aspect-[3/4] bg-white/[0.02] border border-white/5 rounded-sm overflow-hidden cursor-pointer group hover:border-white/20 transition-all shadow-xl"><ResolvedImage src={m.photoUrl} className="w-full h-full object-cover opacity-40 group-hover:opacity-100 grayscale transition-all duration-700" /></motion.div>
+                    <motion.div key={m.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => { setCurrentIndex(idx); setViewMode('theatre'); }} className="aspect-[3/4] bg-white/[0.02] border border-white/5 rounded-sm overflow-hidden cursor-pointer group hover:border-white/20 transition-all shadow-xl"><ResolvedImage src={m.photoUrl || ''} className="w-full h-full object-cover opacity-40 group-hover:opacity-100 grayscale transition-all duration-700" /></motion.div>
                   ))}
                 </div>
               </div>

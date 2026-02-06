@@ -50,14 +50,15 @@ class ExportServiceImpl {
              // Extract path: https://storage.googleapis.com/BUCKET/artifacts/...
              const urlObj = new URL(fetchUrl);
              const pathParts = urlObj.pathname.split('/').slice(2); // Remove /BUCKET/
-             const storagePath = pathParts.join('/');
+             const storagePath = pathParts.join('/'); // decodeURIComponent if needed
              
              // If manual parsing is tricky, try simply extracting everything after the bucket name
              // Or better: rely on the known structure "artifacts/..."
              const match = fetchUrl.match(/artifacts\/.+/);
-             if (match) {
-                 const path = match[0];
-                 const storageRef = ref(storage, path);
+             const finalPath = match ? match[0] : storagePath;
+             
+             if (finalPath) {
+                 const storageRef = ref(storage, finalPath);
                  fetchUrl = await getDownloadURL(storageRef);
                  console.log(`🔄 [EXPORT] Resolved GCS URL to: ${fetchUrl}`);
              }
