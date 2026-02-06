@@ -19,8 +19,7 @@ export function subscribeToMemoryTree(
   onUpdate: (partial: Partial<MemoryTree>) => void,
   onError?: (error: any) => void
 ): Unsubscribe {
-  console.log(`[FIREBASE] Connecting to DB: ${db.type} / ${db.app.options.projectId}`);
-  console.log(`[FIREBASE] Subscription Protocol: ${protocolKey}`);
+  console.log(`[FIREBASE] Connecting to DB Instance...`);
   
   let memoryUnsubs: Unsubscribe[] = [];
   const memoriesBySource = new Map<string, Memory[]>();
@@ -30,22 +29,25 @@ export function subscribeToMemoryTree(
     onUpdate({ memories: combined });
   };
 
-  // 1. Subscribe to Global Memories (Directly under the tree)
+  // 1. Subscribe to Global Memories
   const globalUnsub = onSnapshot(collection(db, 'trees', protocolKey, 'memories'), (snap) => {
     const memories = snap.docs.map(m => {
       const d = m.data();
-      // ROBUST MAPPING: Capture photoUrl from any possible field name
-      const photoUrl = d.downloadUrl || d.url || d.fileUrl || d.photoUrl || d.imageUrl || d.src || d.PhotoUrl || d.Image || d.File;
-      
+      // ULTRA-ROBUST FIELD DISCOVERY
+      const photoUrl = d.photoUrl || d.downloadUrl || d.url || d.fileUrl || d.imageUrl || d.src || d.PhotoUrl || d.Url || d.Image;
+      const name = d.name || d.fileName || d.title || d.Title || d.Name || 'Artifact';
+      const desc = d.description || d.desc || d.notes || d.Note || d.Description || '';
+      const date = d.date || d.timestamp?.toDate?.()?.toISOString() || d.createdAt || new Date().toISOString();
+
       return {
         id: m.id,
-        name: d.name || d.fileName || d.title || 'Artifact',
-        description: d.description || d.desc || '',
-        content: d.content || d.text || d.body || '',
-        location: d.location || d.place || d.loc || '',
-        type: inferMemoryType(d.name || d.fileName || d.contentType || ''),
+        name: name,
+        description: desc,
+        content: d.content || d.text || '',
+        location: d.location || d.place || '',
+        type: inferMemoryType(name),
         photoUrl: photoUrl || '',
-        date: d.date || d.timestamp?.toDate?.()?.toISOString() || d.createdAt || new Date().toISOString(),
+        date: date,
         tags: d.tags || { personIds: [FAMILY_ROOT_ID], isFamilyMemory: true },
       } as Memory;
     });
@@ -73,17 +75,20 @@ export function subscribeToMemoryTree(
         (memSnap) => {
           const memories = memSnap.docs.map((m) => {
             const d = m.data();
-            const photoUrl = d.downloadUrl || d.url || d.fileUrl || d.photoUrl || d.imageUrl || d.src || d.PhotoUrl || d.Image || d.File;
+            const photoUrl = d.photoUrl || d.downloadUrl || d.url || d.fileUrl || d.imageUrl || d.src || d.PhotoUrl || d.Url || d.Image;
+            const name = d.name || d.fileName || d.title || d.Title || d.Name || 'Artifact';
+            const desc = d.description || d.desc || d.notes || d.Note || d.Description || '';
+            const date = d.date || d.timestamp?.toDate?.()?.toISOString() || d.createdAt || new Date().toISOString();
 
             return {
               id: m.id,
-              name: d.name || d.fileName || d.title || 'Artifact',
-              description: d.description || d.desc || '',
-              content: d.content || d.text || d.body || '',
-              location: d.location || d.place || d.loc || '',
-              type: inferMemoryType(d.name || d.fileName || d.contentType || ''),
+              name: name,
+              description: desc,
+              content: d.content || d.text || '',
+              location: d.location || d.place || '',
+              type: inferMemoryType(name),
               photoUrl: photoUrl || '',
-              date: d.date || d.timestamp?.toDate?.()?.toISOString() || d.createdAt || new Date().toISOString(),
+              date: date,
               tags: d.tags || { personIds: [person.id], isFamilyMemory: false },
             } as Memory;
           });
