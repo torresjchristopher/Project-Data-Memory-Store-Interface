@@ -56,12 +56,17 @@ export default function ImmersiveGallery({ tree, onExport, overrides, setOverrid
       const fp = filterPerson;
 
       return localMemories.filter(m => {
-        if (!m?.photoUrl) return false;
+        if (!m?.photoUrl) {
+          console.warn(`[DEBUG] Artifact ${m?.id} (${m?.name}) has no photoUrl.`);
+          return false;
+        }
 
         // 1. Dropdown Filter
         const personIds = Array.isArray(m.tags?.personIds) ? m.tags.personIds.map(String) : [];
         if (fp && fp !== '' && fp !== 'FAMILY_ROOT') {
-          if (!personIds.includes(String(fp))) return false;
+          if (!personIds.includes(String(fp))) {
+            return false;
+          }
         }
 
         if (!q) return true;
@@ -76,7 +81,9 @@ export default function ImmersiveGallery({ tree, onExport, overrides, setOverrid
           tree?.people?.find(p => String(p.id) === String(pid))?.name?.toLowerCase().includes(q)
         );
 
-        return textMatch || year.includes(q) || tags.some(t => String(t || '').toLowerCase().includes(q)) || hasPersonMatch;
+        const isMatch = textMatch || year.includes(q) || tags.some(t => String(t || '').toLowerCase().includes(q)) || hasPersonMatch;
+        if (isMatch) console.log(`[DEBUG] Match Found: ${m.name} for query "${q}"`);
+        return isMatch;
       });
     } catch (e) {
       return [];

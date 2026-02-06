@@ -4,8 +4,8 @@ import type { MemoryTree } from '../types';
 /**
  * ARCHIVE EXPORT SERVICE (OBSIDIAN EDITION)
  * Implements a high-caliber flat-folder structure for family preservation.
- * Fixes: Removed query-param cache busting (which breaks Firebase signatures).
- * Uses standard fetch which respects the CORS update performed by the user.
+ * Respects local overrides for Name and Era.
+ * Fixes: Enhanced logging and robust CORS fetching.
  */
 
 class ExportServiceImpl {
@@ -13,7 +13,7 @@ class ExportServiceImpl {
     tree: MemoryTree,
     _familyBio: string
   ): Promise<Blob> {
-    console.log("📂 [EXPORT] Starting Production Archival Build...");
+    console.log("📂 [EXPORT] Initializing production archival build...");
     const zip = new JSZip();
     const root = zip.folder("Schnitzel Bank Archive") || zip;
 
@@ -22,9 +22,12 @@ class ExportServiceImpl {
     const personFolderMap = new Map<string, JSZip>();
 
     (tree.people || []).forEach(person => {
-      if (person.id !== 'FAMILY_ROOT' && person.name !== 'Murray Archive') {
+      if (person.id !== 'FAMILY_ROOT') {
         const folder = root.folder(this.sanitize(person.name));
-        if (folder) personFolderMap.set(String(person.id), folder);
+        if (folder) {
+          personFolderMap.set(String(person.id), folder);
+          console.log(`📁 [EXPORT] Prepared folder for: ${person.name}`);
+        }
       }
     });
 
@@ -37,18 +40,21 @@ class ExportServiceImpl {
       processedIds.add(memory.id);
 
       try {
-        console.log(`📡 [EXPORT] Downloading: ${memory.name}`);
+        console.log(`📡 [EXPORT] Attempting download: ${memory.name} from ${memory.photoUrl}`);
         
-        // Use the URL as provided. The CORS fix on the bucket will now allow this.
-        // DO NOT add query parameters here as it breaks the Firebase signature.
-        const response = await fetch(memory.photoUrl);
+        // CORS Safety: Force mode 'cors'
+        const response = await fetch(memory.photoUrl, {
+          method: 'GET',
+          mode: 'cors',
+          credentials: 'omit'
+        });
 
-        if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
+        if (!response.ok) throw new Error(`Fetch failed with status ${response.status}`);
         const blob = await response.blob();
+        
+        console.log(`💎 [EXPORT] Received blob for ${memory.name} (${blob.size} bytes)`);
 
         let targetFolder = familyFolder;
-        
-        // Sorting Logic
         const personIds = Array.isArray(memory.tags?.personIds) ? memory.tags.personIds : [];
         const isFamilywide = !!memory.tags?.isFamilyMemory;
 
@@ -57,7 +63,6 @@ class ExportServiceImpl {
           targetFolder = personFolderMap.get(primaryId) || familyFolder;
         }
 
-        // Filename: [YEAR]_[NAME].[EXT]
         const year = new Date(memory.date || Date.now()).getUTCFullYear();
         let baseName = this.sanitize(memory.name || 'artifact');
         const extension = this.getExt(memory.photoUrl);
@@ -73,7 +78,7 @@ class ExportServiceImpl {
         if (targetFolder) {
           targetFolder.file(fileName, blob);
           successCount++;
-          console.log(`✅ [EXPORT] Success: ${fileName} -> ${targetFolder.name}`);
+          console.log(`✅ [EXPORT] Success: ${fileName} added to ${targetFolder.name}`);
         }
       } catch (err: any) {
         console.error(`❌ [EXPORT] Failed artifact [${memory.name}]:`, err.message);
@@ -81,7 +86,7 @@ class ExportServiceImpl {
     });
 
     await Promise.all(downloadPromises);
-    console.log(`📦 [EXPORT] ZIP Composition Complete. Total: ${successCount}`);
+    console.log(`📦 [EXPORT] Composition Complete. Total artifacts physically captured: ${successCount}`);
 
     return await zip.generateAsync({
       type: 'blob',
