@@ -8,6 +8,7 @@ import { MemoryBookPdfService } from './services/MemoryBookPdfService';
 import { subscribeToMemoryTree } from './services/TreeSubscriptionService';
 import LandingPage from './pages/LandingPage';
 import ImmersiveGallery from './pages/ImmersiveGallery';
+import WebIngestor from './pages/WebIngestor';
 
 const MURRAY_PROTOCOL_KEY = "MURRAY_LEGACY_2026";
 
@@ -127,6 +128,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/archive" replace />} />
           <Route path="/archive" element={<ImmersiveGallery tree={memoryTree} onExport={handleExport} overrides={overrides} setOverrides={setOverrides} isSyncing={isSyncing} />} />
+          <Route path="/ingest" element={<WebIngestor tree={memoryTree} />} />
           <Route path="*" element={<Navigate to="/archive" replace />} />
         </Routes>
       )}

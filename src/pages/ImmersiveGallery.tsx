@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Download, Terminal, Search, ChevronLeft, ChevronRight, X, Grid, Maximize2, Lock, Edit3 } from 'lucide-react';
+import { Download, Terminal, Search, ChevronLeft, ChevronRight, X, Grid, Maximize2, Lock, Edit3, Database } from 'lucide-react';
 import type { MemoryTree, Memory } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import ArtifactCliTab from './tabs/ArtifactCliTab';
 import { PersistenceService } from '../services/PersistenceService';
 import { ref, getDownloadURL } from 'firebase/storage';
 import { storage } from '../firebase';
+import { useNavigate } from 'react-router-dom';
 
 // --- IMAGE COMPONENT FOR GCS RESOLUTION ---
 const ResolvedImage = ({ src, alt, className }: { src: string, alt?: string, className?: string }) => {
@@ -108,6 +109,7 @@ interface ImmersiveGalleryProps {
 
 export default function ImmersiveGallery({ tree, onExport, overrides, setOverrides, isSyncing }: ImmersiveGalleryProps) {
   // --- STATE ---
+  const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [viewMode, setViewMode] = useState<'theatre' | 'grid-2' | 'grid-4' | 'grid-8' | 'grid-12'>('theatre');
   const [showUi, setShowUi] = useState(true);
@@ -321,6 +323,7 @@ export default function ImmersiveGallery({ tree, onExport, overrides, setOverrid
 
           <div className="pointer-events-auto flex gap-4">
             <button onClick={() => { localStorage.removeItem('schnitzel_session'); window.location.reload(); }} className="p-3.5 bg-white/5 hover:bg-white/10 rounded-full border border-white/5 transition-all shadow-xl" title="Lock Archive"><Lock className="w-4 h-4 text-white/40" /></button>
+            <button onClick={() => navigate('/ingest')} className="p-3.5 bg-white/5 hover:bg-white/10 rounded-full border border-white/5 transition-all shadow-xl" title="Web Ingestor"><Database className="w-4 h-4 text-white/40" /></button>
             <button onClick={cycleGridMode} className="p-3.5 bg-white/5 hover:bg-white/10 rounded-full border border-white/5 transition-all shadow-xl">
               {viewMode === 'theatre' ? <Grid className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
             </button>
