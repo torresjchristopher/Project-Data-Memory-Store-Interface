@@ -34,7 +34,7 @@ export default function LandingPage({ onUnlock, itemCount = 0, error = null, isS
   }, [itemCount, error]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black flex flex-col items-center justify-center relative overflow-hidden selection:bg-black/10 dark:selection:bg-white/10 transition-colors duration-500">
+    <div className="min-h-screen bg-white dark:bg-black flex flex-col items-center justify-center relative overflow-hidden selection:bg-black/10 dark:selection:bg-white/10 transition-colors duration-500">
       
       <div className="absolute inset-0 bg-noise opacity-40 pointer-events-none z-0"></div>
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-black/[0.01] dark:bg-white/[0.01] rounded-full blur-[100px] pointer-events-none z-0"></div>

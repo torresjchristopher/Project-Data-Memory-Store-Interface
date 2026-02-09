@@ -89,11 +89,11 @@ export default function WebIngestor({ tree }: WebIngestorProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-white font-serif selection:bg-black/10 dark:selection:bg-white/10 relative overflow-hidden transition-colors duration-500">
+    <div className="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white font-serif selection:bg-black/10 dark:selection:bg-white/10 relative overflow-hidden transition-colors duration-500">
       <div className="absolute inset-0 bg-noise opacity-20 pointer-events-none"></div>
       
       {/* HEADER */}
-      <header className="fixed top-0 left-0 right-0 z-50 px-10 py-8 flex justify-between items-center border-b border-gray-200 dark:border-white/5 bg-white/50 dark:bg-black/50 backdrop-blur-2xl transition-colors">
+      <header className="fixed top-0 left-0 right-0 z-50 px-10 py-8 flex justify-between items-center border-b border-gray-200 dark:border-white/5 bg-white/80 dark:bg-black/50 backdrop-blur-2xl transition-colors">
         <button onClick={() => navigate('/archive')} className="p-3 bg-white dark:bg-white/5 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-all border border-gray-200 dark:border-white/5 group shadow-sm">
           <ArrowLeft className="w-5 h-5 text-gray-400 dark:text-white/40 group-hover:text-black dark:group-hover:text-white" />
         </button>

@@ -1,62 +1,22 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
+@layer base {
+  html, body {
+    @apply transition-colors duration-500;
+  }
+}
 
 html {
-  color-scheme: dark;
+  color-scheme: light dark;
 }
 
 body {
-  font-feature-settings: "rounding" 1;
+  margin: 0;
+  font-family: 'Lato', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-weight: bold;
-}
-
-h1 {
-  font-size: 2.25rem;
-}
-
-@media (min-width: 640px) {
-  h1 {
-    font-size: 3rem;
-  }
-}
-
-@media (min-width: 768px) {
-  h1 {
-    font-size: 3.75rem;
-  }
-}
-
-h2 {
-  font-size: 1.875rem;
-}
-
-@media (min-width: 640px) {
-  h2 {
-    font-size: 2.25rem;
-  }
-}
-
-@media (min-width: 768px) {
-  h2 {
-    font-size: 3rem;
-  }
-}
-
-h3 {
-  font-size: 1.5rem;
-}
-
-@media (min-width: 640px) {
-  h3 {
-    font-size: 1.875rem;
-  }
 }
 
 .gradient-text {
@@ -80,32 +40,13 @@ h3 {
 }
 
 @keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes slide-up {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes glow {
-  0%, 100% {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
-  }
-  50% {
-    box-shadow: 0 0 30px rgba(59, 130, 246, 0.8);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .fade-in {
@@ -115,6 +56,3 @@ h3 {
 .slide-up {
   animation: slide-up 0.5s ease-out;
 }
-
-
-

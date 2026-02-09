@@ -35,10 +35,13 @@ function App() {
 
   useEffect(() => {
     localStorage.setItem('schnitzel_theme', theme);
+    const root = document.documentElement;
     if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
+      root.classList.add('dark');
+      document.body.classList.add('dark');
     } else {
-      document.documentElement.classList.remove('dark');
+      root.classList.remove('dark');
+      document.body.classList.remove('dark');
     }
   }, [theme]);
 
