@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Search, X, MessageSquare, User, Globe, Paperclip, ChevronLeft } from 'lucide-react';
+import { Send, Search, MessageSquare, User, Paperclip, ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ChatService } from '../services/ChatService';
 import type { ChatMessage, ChatSession } from '../services/ChatService';

@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, X, Calendar, FileText, Play, Shuffle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import type { MemoryTree, Person, Memory } from '../types';
+import type { MemoryTree, Memory } from '../types';
 import { PersistenceService } from '../services/PersistenceService';
 import { ref, getDownloadURL } from 'firebase/storage';
 import { storage } from '../firebase';
@@ -40,7 +40,6 @@ export default function BiographyPage({ tree, currentFamily }: BiographyPageProp
   const [isEditing, setIsEditing] = useState(false);
   const [editBio, setEditBio] = useState('');
   const [editBirthDate, setEditBirthDate] = useState('');
-  const [showControls, setShowControls] = useState(false);
   const [isShuffling, setIsShuffling] = useState(false);
 
   const people = useMemo(() => {
@@ -161,7 +160,6 @@ export default function BiographyPage({ tree, currentFamily }: BiographyPageProp
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 z-[100] bg-white dark:bg-black flex flex-col items-center justify-center"
-                onMouseMove={() => { setShowControls(true); }}
             >
                 <div className="absolute top-10 right-10 z-[110] flex gap-4">
                     <button 
