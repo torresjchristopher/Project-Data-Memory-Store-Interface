@@ -473,24 +473,23 @@ export default function ImmersiveGallery({ tree, overrides, setOverrides, isSync
             </select>
           </div>
 
-          {/* RIGHT: Menu Grid (3 Columns) */}
-          <div className="pointer-events-auto grid grid-cols-3 gap-2 p-2">
-              <button onClick={() => { localStorage.removeItem('schnitzel_session'); localStorage.removeItem('schnitzel_identity'); window.location.reload(); }} className="p-3.5 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl" title="Lock Archive"><Lock className="w-4 h-4 text-gray-500 dark:text-white/40" /></button>
-              <button onClick={() => navigate(`${slugPrefix}/messages`)} className="p-3.5 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl" title="Messages"><MessageCircle className="w-4 h-4 text-gray-500 dark:text-white/40" /></button>
-              <button onClick={() => navigate(`${slugPrefix}/documents`)} className="p-3.5 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl" title="File Cabinet"><Database className="w-4 h-4 text-gray-500 dark:text-white/40" /></button>
+          {/* RIGHT: Menu Grid (4 Columns) */}
+          <div className="pointer-events-auto grid grid-cols-4 gap-2 p-2">
+              <button onClick={() => { localStorage.removeItem('schnitzel_session'); localStorage.removeItem('schnitzel_identity'); window.location.reload(); }} className="p-3.5 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl hover:bg-gray-100 dark:hover:bg-white/10" title="Lock Archive"><Lock className="w-4 h-4 text-gray-500 dark:text-white/40" /></button>
+              <button onClick={() => navigate(`${slugPrefix}/messages`)} className="p-3.5 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl hover:bg-gray-100 dark:hover:bg-white/10" title="Messages"><MessageCircle className="w-4 h-4 text-gray-500 dark:text-white/40" /></button>
+              <button onClick={() => navigate(`${slugPrefix}/documents`)} className="p-3.5 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl hover:bg-gray-100 dark:hover:bg-white/10" title="File Cabinet"><Database className="w-4 h-4 text-gray-500 dark:text-white/40" /></button>
+              <button onClick={() => navigate(`${slugPrefix}/ingest`)} className="p-3.5 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl hover:bg-gray-100 dark:hover:bg-white/10" title="Upload"><Terminal className="w-4 h-4 text-gray-500 dark:text-white/40" /></button>
               
-              <button onClick={() => navigate(`${slugPrefix}/ingest`)} className="p-3.5 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl" title="Upload"><Terminal className="w-4 h-4 text-gray-500 dark:text-white/40" /></button>
-              <button onClick={cycleGridMode} className="p-3.5 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl" title="Grid View">
+              <button onClick={cycleGridMode} className="p-3.5 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl hover:bg-gray-100 dark:hover:bg-white/10" title="Grid View">
                 {viewMode === 'theatre' ? <Grid className="w-4 h-4 text-gray-500 dark:text-white/40" /> : <Maximize2 className="w-4 h-4 text-gray-500 dark:text-white/40" />}
               </button>
-              <button onClick={() => navigate(`${slugPrefix}/biography`)} className="p-3.5 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl" title="Biographies"><BookOpen className="w-4 h-4 text-gray-500 dark:text-white/40" /></button>
-              
+              <button onClick={() => navigate(`${slugPrefix}/biography`)} className="p-3.5 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl hover:bg-gray-100 dark:hover:bg-white/10" title="Biographies"><BookOpen className="w-4 h-4 text-gray-500 dark:text-white/40" /></button>
               <button onClick={() => navigate(`${slugPrefix}/export`)} className="p-3.5 bg-black dark:bg-white text-white dark:text-black rounded-full shadow-2xl hover:bg-gray-800 dark:hover:bg-slate-200 transition-all" title="Export"><Download className="w-4 h-4" /></button>
               <button onClick={() => setIsGlobalView(!isGlobalView)} className={`p-3.5 rounded-full border transition-all shadow-xl ${isGlobalView ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-500' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/5 text-gray-500 dark:text-white/40'}`} title="Toggle Global/Family View"><Users className="w-4 h-4" /></button>
-              <button onClick={toggleTheme} className="p-3.5 bg-white dark:bg-white/5 rounded-full border border-gray-200 dark:border-white/5 shadow-xl transition-all hover:bg-gray-100 dark:hover:bg-white/10" title="Theme">
+              
+              <button onClick={toggleTheme} className="p-3.5 rounded-full border border-gray-200 dark:border-white/5 shadow-xl transition-all hover:bg-gray-100 dark:hover:bg-white/10" title="Theme">
                 {theme === 'light' ? <Moon className="w-4 h-4 text-gray-500" /> : <Sun className="w-4 h-4 text-white/40" />}
               </button>
-              
               <button onClick={() => setShowDescription(!showDescription)} className={`p-3.5 rounded-full border transition-all shadow-xl ${showDescription ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-500' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/5 text-gray-500 dark:text-white/40'}`} title="Toggle Description"><AlignLeft className="w-4 h-4" /></button>
               <button onClick={() => setNoteMode(!noteMode)} className={`p-3.5 rounded-full border transition-all shadow-xl ${noteMode ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-500' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/5 text-gray-500 dark:text-white/40'}`} title="Toggle Note Mode"><StickyNote className="w-4 h-4" /></button>
               <button onClick={() => setIsShuffleGallery(!isShuffleGallery)} className={`p-3.5 rounded-full border transition-all shadow-xl ${isShuffleGallery ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-500' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/5 text-gray-500 dark:text-white/40'}`} title="Toggle Shuffle Progression"><Shuffle className="w-4 h-4" /></button>
@@ -630,14 +629,15 @@ export default function ImmersiveGallery({ tree, overrides, setOverrides, isSync
                       <button 
                         onClick={(e) => { 
                             e.stopPropagation(); 
-                            if (filterPerson) {
-                                PersistenceService.getInstance().toggleFavorite(m, filterPerson, tree.protocolKey || 'MURRAY_LEGACY_2026');
+                            const targetPersonId = filterPerson || currentUser.id;
+                            if (targetPersonId) {
+                                PersistenceService.getInstance().toggleFavorite(m, targetPersonId, tree.protocolKey || 'MURRAY_LEGACY_2026');
                             }
                         }} 
-                        className={`absolute top-2 left-2 p-2 rounded-full transition-all z-20 ${filterPerson && m.tags.favoriteForPersonIds?.includes(filterPerson) ? 'text-emerald-500 opacity-100' : 'text-white/50 opacity-0 group-hover:opacity-100 hover:text-emerald-400'}`}
-                        title={filterPerson ? "Toggle Favorite for Subject" : "Select a Subject to set Favorites"}
+                        className={`absolute top-2 left-2 p-2 rounded-full transition-all z-20 ${(filterPerson || currentUser.id) && m.tags?.favoriteForPersonIds?.includes(filterPerson || currentUser.id) ? 'text-emerald-500 opacity-100' : 'text-white/50 opacity-0 group-hover:opacity-100 hover:text-emerald-400'}`}
+                        title="Toggle Favorite"
                       >
-                        <Star className={`w-4 h-4 ${filterPerson && m.tags.favoriteForPersonIds?.includes(filterPerson) ? 'fill-emerald-500' : ''}`} />
+                        <Star className={`w-4 h-4 ${(filterPerson || currentUser.id) && m.tags?.favoriteForPersonIds?.includes(filterPerson || currentUser.id) ? 'fill-emerald-500' : ''}`} />
                       </button>
 
                       <button onClick={(e) => { e.stopPropagation(); toggleSelection(m.id); }} className={`absolute top-2 right-2 p-2 rounded-full transition-all z-20 ${selectedIds.has(m.id) ? 'bg-emerald-500 text-white opacity-100' : 'bg-black/50 text-white/50 opacity-0 group-hover:opacity-100 hover:bg-black/80 hover:text-white'}`}>{selectedIds.has(m.id) ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}</button>

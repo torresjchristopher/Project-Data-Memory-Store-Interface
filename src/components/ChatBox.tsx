@@ -28,10 +28,9 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ currentFamily, currentUser, pe
   useEffect(() => {
     // In Note Mode, we only care about messages for this specific artifact
     if (isNoteMode && attachedArtifact) {
-        chatService.getMessagesForArtifact(attachedArtifact.id).then(setMessages);
-        // We don't need real-time sub for notes in this simplified implementation, 
-        // but we'll use the family slug as a default participant for saving.
+        const unsub = chatService.subscribeToArtifactMessages(attachedArtifact.id, setMessages);
         setParticipants([{ id: currentFamily.slug, name: currentFamily.name, type: 'family' }]);
+        return unsub;
     } else if (participants.length > 0) {
       const pIds = [currentFamily.slug, ...participants.map(p => p.id)];
       const unsub = chatService.subscribeToMessages(pIds, setMessages);
@@ -104,11 +103,6 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ currentFamily, currentUser, pe
       currentUser.id
     );
     setInputText('');
-    
-    if (isNoteMode && attachedArtifact) {
-        const msgs = await chatService.getMessagesForArtifact(attachedArtifact.id);
-        setMessages(msgs);
-    }
   };
 
   return (

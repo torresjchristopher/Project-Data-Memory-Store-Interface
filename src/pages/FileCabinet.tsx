@@ -193,7 +193,7 @@ export default function FileCabinet({ tree, overrides, setOverrides, isSyncing, 
 
   useEffect(() => {
     if (annotationMode !== 'off' && currentMemory) {
-        ChatService.getInstance().getMessagesForArtifact(currentMemory.id).then(setArtifactMessages);
+        return ChatService.getInstance().subscribeToArtifactMessages(currentMemory.id, setArtifactMessages);
     } else setArtifactMessages([]);
   }, [currentMemory?.id, annotationMode]);
 

@@ -123,22 +123,26 @@ export class ChatService {
     }
   }
 
-  async getMessagesForArtifact(artifactId: string): Promise<ChatMessage[]> {
-    try {
-      // Search all messages in the 'messages' group collection that reference this artifact
-      const q = query(collectionGroup(db, 'messages'), where('artifactId', '==', artifactId), orderBy('timestamp', 'desc'));
-      const snap = await getDocs(q);
-      return snap.docs.map(d => d.data() as ChatMessage);
-    } catch (e) {
-      console.error("Failed to fetch artifact annotations", e);
-      return [];
-    }
+  subscribeToArtifactMessages(artifactId: string, onUpdate: (messages: ChatMessage[]) => void) {
+    const q = query(
+      collectionGroup(db, 'messages'),
+      where('artifactId', '==', artifactId),
+      orderBy('timestamp', 'desc')
+    );
+
+    return onSnapshot(q, (snapshot) => {
+      const messages = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as ChatMessage[];
+      onUpdate(messages);
+    });
   }
 
   subscribeToAllChats(participantId: string, onUpdate: (chats: ChatSession[]) => void) {
     const q = query(
       collection(db, 'chats'),
-      where('participants', 'array-contains', participantId)
+      where('participants', 'array-contains-any', [participantId, 'GLOBAL_BROADCAST'])
     );
 
     return onSnapshot(q, (snapshot) => {
