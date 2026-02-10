@@ -149,6 +149,7 @@ export default function ImmersiveGallery({ tree, overrides, setOverrides, isSync
   const [noteMode, setNoteMode] = useState(false);
   const [showDescription, setShowDescription] = useState(true);
   const [isShuffleGallery, setIsShuffleGallery] = useState(false);
+  const [isChatInputActive, setIsChatInputActive] = useState(false);
   const [orderedMemories, setOrderedMemories] = useState<Memory[]>([]);
   const [customOrder, setCustomOrder] = useState<string[]>(() => {
     const saved = localStorage.getItem(`schnitzel_order_${currentFamily.slug || 'global'}`);
@@ -252,7 +253,7 @@ export default function ImmersiveGallery({ tree, overrides, setOverrides, isSync
       }
       if (viewMode === 'theatre' && !editingField && !isVideoPlaying) {
         cycleIntervalRef.current = setInterval(() => {
-          if (currentMemory?.type === 'video') return; 
+          if (currentMemory?.type === 'video' || isChatInputActive) return; 
           if (!showUiRef.current && filteredMemories.length > 1) {
             setTransitionDuration(1.5);
             if (isShuffleGallery) {
@@ -582,6 +583,7 @@ export default function ImmersiveGallery({ tree, overrides, setOverrides, isSync
                                 attachedArtifact={attachedArtifact} 
                                 onSelectArtifact={handleSelectArtifactFromChat} 
                                 isNoteMode={noteMode}
+                                onInputActive={setIsChatInputActive}
                             />
                         </div>
                     )}

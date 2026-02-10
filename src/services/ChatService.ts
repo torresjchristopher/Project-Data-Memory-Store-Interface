@@ -93,13 +93,15 @@ export class ChatService {
     const results: any[] = [];
 
     // 1. Search Families
-    const familiesSnap = await getDocs(collection(db, 'families'));
-    familiesSnap.forEach(doc => {
-      const data = doc.data();
-      if (data.slug !== currentFamilySlug && (data.name.toLowerCase().includes(term) || data.slug.toLowerCase().includes(term))) {
-        results.push({ id: data.slug, name: data.name, type: 'family' });
-      }
-    });
+    try {
+        const familiesSnap = await getDocs(collection(db, 'families'));
+        familiesSnap.forEach(doc => {
+          const data = doc.data();
+          if (data.slug !== currentFamilySlug && (data.name.toLowerCase().includes(term) || data.slug.toLowerCase().includes(term))) {
+            results.push({ id: data.slug, name: data.name, type: 'family' });
+          }
+        });
+    } catch (e) { console.error("Search families failed", e); }
 
     return results;
   }
@@ -115,7 +117,7 @@ export class ChatService {
       return peopleSnap.docs
         .filter(doc => doc.id !== 'FAMILY_ROOT')
         .map(doc => ({
-          id: `${familySlug}.${doc.id}`,
+          id: doc.id,
           name: doc.data().name
         }));
     } catch (e) {
@@ -125,10 +127,10 @@ export class ChatService {
   }
 
   subscribeToArtifactMessages(artifactId: string, onUpdate: (messages: ChatMessage[]) => void) {
+    // REMOVED orderBy to prevent INTERNAL ASSERTION FAILED / index requirement issues in collection groups
     const q = query(
       collectionGroup(db, 'messages'),
-      where('artifactId', '==', artifactId),
-      orderBy('timestamp', 'desc')
+      where('artifactId', '==', artifactId)
     );
 
     return onSnapshot(q, (snapshot) => {
@@ -136,6 +138,14 @@ export class ChatService {
         id: doc.id,
         ...doc.data()
       })) as ChatMessage[];
+      
+      // Sort locally
+      messages.sort((a, b) => {
+          const tA = a.timestamp?.seconds || 0;
+          const tB = b.timestamp?.seconds || 0;
+          return tB - tA; // Newest first for notes
+      });
+      
       onUpdate(messages);
     }, (error) => {
         console.error(`Artifact message subscription failed for ${artifactId}:`, error);
@@ -154,7 +164,7 @@ export class ChatService {
         ...doc.data()
       })) as ChatSession[];
       
-      // Sort locally to avoid needing a composite index
+      // Sort locally
       chats.sort((a, b) => {
         const timeA = a.updatedAt?.seconds || 0;
         const timeB = b.updatedAt?.seconds || 0;
@@ -180,7 +190,7 @@ export class ChatService {
       })) as ChatSession[];
       onUpdate(chats);
     }, (error) => {
-        console.error("Global broadcast subscription failed:", error);
+        console.error("Global broadcast sub failed", error);
     });
   }
 }

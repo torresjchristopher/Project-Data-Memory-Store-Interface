@@ -12,6 +12,7 @@ import WebIngestor from './pages/WebIngestor';
 import ExportPage from './pages/ExportPage';
 import BiographyPage from './pages/BiographyPage';
 import DMPage from './pages/DMPage';
+import NotesGallery from './pages/NotesGallery';
 import { db } from './firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import type { Person } from './types';
@@ -332,6 +333,8 @@ function App() {
             <Route path="/:slug/biography" element={<BiographyPage tree={memoryTree} currentFamily={currentFamily} />} />
             <Route path="/messages" element={<DMPage tree={memoryTree} currentFamily={currentFamily} currentUser={currentUser} />} />
             <Route path="/:slug/messages" element={<DMPage tree={memoryTree} currentFamily={currentFamily} currentUser={currentUser} />} />
+            <Route path="/notes" element={<NotesGallery tree={memoryTree} currentFamily={currentFamily} currentUser={currentUser} />} />
+            <Route path="/:slug/notes" element={<NotesGallery tree={memoryTree} currentFamily={currentFamily} currentUser={currentUser} />} />
 
             <Route path="*" element={<Navigate to={currentFamily.slug ? `/${currentFamily.slug}/archive` : "/archive"} replace />} />
           </Routes>
