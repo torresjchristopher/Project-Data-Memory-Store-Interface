@@ -147,6 +147,7 @@ export default function ImmersiveGallery({ tree, overrides, setOverrides, isSync
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isUiLocked, setIsUiLocked] = useState(false);
   const [noteMode, setNoteMode] = useState(false);
+  const [chatBoxMode, setChatBoxMode] = useState<'dm' | 'note'>('dm');
   const [showDescription, setShowDescription] = useState(true);
   const [isShuffleGallery, setIsShuffleGallery] = useState(false);
   const [isChatInputActive, setIsChatInputActive] = useState(false);
@@ -556,7 +557,7 @@ export default function ImmersiveGallery({ tree, overrides, setOverrides, isSync
                 animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
                 exit={{ opacity: 0, scale: 0.9, filter: 'blur(20px)' }}
                 transition={{ duration: transitionDuration, ease: [0.22, 1, 0.36, 1] }}
-                className="w-full h-full flex items-center justify-center p-4 md:p-20"
+                className={`w-full h-full flex items-center justify-center p-4 md:p-20 transition-all duration-700 ${chatBoxMode === 'note' ? 'md:pl-[400px]' : ''}`}
               >
                 {currentMemory.type === 'video' || currentMemory.name.endsWith('.mp4') ? (
                     <CustomVideoPlayer 
@@ -573,16 +574,17 @@ export default function ImmersiveGallery({ tree, overrides, setOverrides, isSync
               <AnimatePresence>
                 {showUi && (
                   <div className="absolute inset-0 z-30 pointer-events-none">
-                    {/* CHAT HUD - BOTTOM LEFT */}
+                    {/* CHAT HUD - CENTERED BOTTOM */}
                     {viewMode === 'theatre' && (
-                        <div className="absolute bottom-8 left-8 pointer-events-auto" onMouseEnter={() => setIsUiLocked(true)} onMouseLeave={() => setIsUiLocked(false)}>
+                        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 pointer-events-auto w-full max-w-4xl px-8" onMouseEnter={() => setIsUiLocked(true)} onMouseLeave={() => setIsUiLocked(false)}>
                             <ChatBox 
                                 currentFamily={currentFamily} 
                                 currentUser={currentUser} 
                                 people={tree.people} 
                                 attachedArtifact={attachedArtifact} 
                                 onSelectArtifact={handleSelectArtifactFromChat} 
-                                isNoteMode={noteMode}
+                                initialMode={noteMode ? 'note' : 'dm'}
+                                onModeChange={setChatBoxMode}
                                 onInputActive={setIsChatInputActive}
                             />
                         </div>
