@@ -285,6 +285,32 @@ export default function ImmersiveGallery({ tree, overrides, setOverrides, isSync
     const handleKeys = (e: KeyboardEvent) => {
       if (editingField) return;
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName || '')) return;
+      
+      // Arrow Key Rearranging Logic (Grid Mode + Single Selection)
+      if (viewMode !== 'theatre' && selectedIds.size === 1 && (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        e.preventDefault();
+        const selectedId = Array.from(selectedIds)[0];
+        const currentIdx = orderedMemories.findIndex(m => m.id === selectedId);
+        if (currentIdx === -1) return;
+
+        let targetIdx = -1;
+        const cols = viewMode === 'grid-2' ? 2 : viewMode === 'grid-4' ? 4 : viewMode === 'grid-8' ? 8 : viewMode === 'grid-12' ? 12 : 4;
+
+        if (e.key === 'ArrowLeft') targetIdx = currentIdx - 1;
+        else if (e.key === 'ArrowRight') targetIdx = currentIdx + 1;
+        else if (e.key === 'ArrowUp') targetIdx = currentIdx - cols;
+        else if (e.key === 'ArrowDown') targetIdx = currentIdx + cols;
+
+        if (targetIdx >= 0 && targetIdx < orderedMemories.length) {
+            const newOrdered = [...orderedMemories];
+            const [movedItem] = newOrdered.splice(currentIdx, 1);
+            newOrdered.splice(targetIdx, 0, movedItem);
+            setOrderedMemories(newOrdered);
+            setCustomOrder(newOrdered.map(m => m.id));
+        }
+        return;
+      }
+
       if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
         e.preventDefault();
         if (viewMode === 'theatre') {
@@ -448,34 +474,39 @@ export default function ImmersiveGallery({ tree, overrides, setOverrides, isSync
       <div className="absolute inset-0 bg-noise opacity-20 pointer-events-none z-0"></div>
       
       <div className="relative z-10 w-full h-screen flex flex-col">
-        <motion.header animate={{ y: showUi ? 0 : -100, opacity: showUi ? 1 : 0 }} className="fixed top-0 left-0 right-0 z-50 px-10 py-4 flex justify-between items-center pointer-events-none">
-          <div className="pointer-events-auto flex items-center gap-12">
-              <div className="flex flex-col items-start gap-0">
-                <h1 className="text-lg font-serif font-bold text-gray-900 dark:text-white tracking-tighter uppercase italic leading-tight">Schnitzelbank</h1>
-                <span className="text-[8px] font-black text-gray-400 dark:text-white/30 uppercase tracking-[0.4em] leading-tight mb-1">
-                    {isGlobalView ? "Murray Global Archive" : currentFamily.name}
-                </span>
-                <div className="flex items-center gap-2 opacity-60">
-                    <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></div>
-                    <span className="text-[9px] font-black text-gray-900 dark:text-white uppercase tracking-[0.2em] italic">{currentUser.name}</span>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-6 bg-white/80 dark:bg-black/60 backdrop-blur-2xl border border-gray-200 dark:border-white/5 rounded-full px-6 py-2 shadow-2xl transition-colors">
-                <Search className="w-3 h-3 text-gray-400 dark:text-white/20" />
-                <input type="text" placeholder="SEARCH..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentIndex(0); }} className="w-32 md:w-48 bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-gray-900 dark:text-white focus:ring-0 placeholder:text-gray-400 dark:placeholder:text-white/10 p-0" />
-                <div className="w-px h-4 bg-gray-300 dark:bg-white/10" />
-                <select value={filterPerson} onChange={(e) => { setFilterPerson(e.target.value); setCurrentIndex(0); }} className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 focus:ring-0 cursor-pointer p-0 pr-4">
-                  <option value="">SUBJECTS</option>
-                  {tree?.people?.map(p => <option key={p.id} value={p.id} className="bg-white dark:bg-black text-black dark:text-white">{p.name?.toUpperCase()}</option>)}
-                </select>
-              </div>
+        <motion.header 
+          animate={{ y: showUi ? 0 : -100, opacity: showUi ? 1 : 0 }} 
+          className="fixed top-0 left-0 right-0 z-50 px-10 py-4 flex justify-between items-start pointer-events-none"
+        >
+          {/* LEFT: Branding */}
+          <div className="pointer-events-auto flex flex-col items-start gap-0">
+            <h1 className="text-lg font-serif font-bold text-gray-900 dark:text-white tracking-tighter uppercase italic leading-tight">Schnitzelbank</h1>
+            <span className="text-[8px] font-black text-gray-400 dark:text-white/30 uppercase tracking-[0.4em] leading-tight mb-1">
+                {isGlobalView ? "Murray Global Archive" : currentFamily.name}
+            </span>
+            <div className="flex items-center gap-2 opacity-60">
+                <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span className="text-[9px] font-black text-gray-900 dark:text-white uppercase tracking-[0.2em] italic">{currentUser.name}</span>
+            </div>
+          </div>
+          
+          {/* CENTER: Search Bar (Absolutely centered) */}
+          <div className="absolute left-1/2 -translate-x-1/2 pointer-events-auto flex items-center gap-6 bg-white/80 dark:bg-black/60 backdrop-blur-2xl border border-gray-200 dark:border-white/5 rounded-full px-6 py-2 shadow-2xl transition-colors">
+            <Search className="w-3 h-3 text-gray-400 dark:text-white/20" />
+            <input type="text" placeholder="SEARCH..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentIndex(0); }} className="w-32 md:w-64 bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-gray-900 dark:text-white focus:ring-0 placeholder:text-gray-400 dark:placeholder:text-white/10 p-0" />
+            <div className="w-px h-4 bg-gray-300 dark:bg-white/10" />
+            <select value={filterPerson} onChange={(e) => { setFilterPerson(e.target.value); setCurrentIndex(0); }} className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 focus:ring-0 cursor-pointer p-0 pr-4">
+              <option value="">SUBJECTS</option>
+              {tree?.people?.map(p => <option key={p.id} value={p.id} className="bg-white dark:bg-black text-black dark:text-white">{p.name?.toUpperCase()}</option>)}
+            </select>
           </div>
 
+          {/* RIGHT: Menu System (Right-Angle Design) */}
           <div className="pointer-events-auto flex flex-col items-end gap-0">
             {/* Horizontal Segment */}
             <div className="flex gap-4 mb-4">
               <button onClick={() => { localStorage.removeItem('schnitzel_session'); localStorage.removeItem('schnitzel_identity'); window.location.reload(); }} className="p-3.5 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl" title="Lock Archive"><Lock className="w-4 h-4 text-gray-500 dark:text-white/40" /></button>
+              <button onClick={() => navigate(`${slugPrefix}/messages`)} className="p-3.5 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl" title="Messages"><MessageCircle className="w-4 h-4 text-gray-500 dark:text-white/40" /></button>
               <button onClick={() => navigate(`${slugPrefix}/documents`)} className="p-3.5 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl" title="File Cabinet"><Database className="w-4 h-4 text-gray-500 dark:text-white/40" /></button>
               <button onClick={() => navigate(`${slugPrefix}/ingest`)} className="p-3.5 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl" title="Upload"><Terminal className="w-4 h-4 text-gray-500 dark:text-white/40" /></button>
               <button onClick={cycleGridMode} className="p-3.5 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl" title="Grid View">
