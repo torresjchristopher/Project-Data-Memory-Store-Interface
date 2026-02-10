@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Download, Search, ChevronLeft, ChevronRight, Grid, Maximize2, Lock, Database, Sun, Moon, Play, Pause, CheckSquare, Square, Volume2, VolumeX, Users, PenTool, Type, X, Terminal, AlignLeft, BookOpen, MessageCircle, StickyNote, Shuffle } from 'lucide-react';
+import { Download, Search, ChevronLeft, ChevronRight, Grid, Maximize2, Lock, Database, Sun, Moon, Play, Pause, CheckSquare, Square, Volume2, VolumeX, Users, X, Terminal, AlignLeft, BookOpen, MessageCircle, StickyNote, Shuffle, Star } from 'lucide-react';
 import type { MemoryTree, Memory, Person } from '../types';
-import { motion, AnimatePresence, Reorder } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { PersistenceService } from '../services/PersistenceService';
 import { ref, getDownloadURL } from 'firebase/storage';
 import { storage } from '../firebase';
@@ -9,9 +9,6 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../App';
 import JSZip from 'jszip';
 import { ChatBox } from '../components/ChatBox';
-import { ChatService } from '../services/ChatService';
-import type { ChatMessage } from '../services/ChatService';
-import { AnnotationStream } from '../components/AnnotationStream';
 
 // --- VIDEO PLAYER COMPONENT ---
 const CustomVideoPlayer = ({ src, autoPlay, onEnded, className }: { src: string, autoPlay?: boolean, onEnded?: () => void, className?: string }) => {
@@ -149,12 +146,9 @@ export default function ImmersiveGallery({ tree, overrides, setOverrides, isSync
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isUiLocked, setIsUiLocked] = useState(false);
-  const [annotationMode, setAnnotationMode] = useState<'off' | 'text' | 'cursive'>('off');
   const [noteMode, setNoteMode] = useState(false);
-  const [artifactMessages, setArtifactMessages] = useState<ChatMessage[]>([]);
   const [showDescription, setShowDescription] = useState(true);
   const [isShuffleGallery, setIsShuffleGallery] = useState(false);
-  const [noteInput, setNoteInput] = useState('');
   const [orderedMemories, setOrderedMemories] = useState<Memory[]>([]);
   const [customOrder, setCustomOrder] = useState<string[]>(() => {
     const saved = localStorage.getItem(`schnitzel_order_${currentFamily.slug || 'global'}`);
@@ -238,14 +232,6 @@ export default function ImmersiveGallery({ tree, overrides, setOverrides, isSync
   }, [filteredMemories, customOrder]);
 
   const currentMemory = filteredMemories[currentIndex] || null;
-
-  useEffect(() => {
-    if ((annotationMode !== 'off' || noteMode) && currentMemory) {
-        ChatService.getInstance().getMessagesForArtifact(currentMemory.id).then(setArtifactMessages);
-    } else {
-        setArtifactMessages([]);
-    }
-  }, [currentMemory?.id, annotationMode, noteMode]);
 
   useEffect(() => {
     const clearTimers = () => {
@@ -338,7 +324,7 @@ export default function ImmersiveGallery({ tree, overrides, setOverrides, isSync
       window.removeEventListener('keydown', handleKeys);
       clearTimers();
     };
-  }, [viewMode, editingField, filteredMemories.length, isVideoPlaying, currentMemory, isUiLocked, isShuffleGallery, currentIndex]);
+  }, [viewMode, editingField, filteredMemories.length, isVideoPlaying, currentMemory, isUiLocked, isShuffleGallery, currentIndex, orderedMemories, selectedIds, customOrder]);
 
   const handleVideoEnd = () => {
       setTimeout(() => {
@@ -438,20 +424,6 @@ export default function ImmersiveGallery({ tree, overrides, setOverrides, isSync
     setSelectedIds(new Set());
   };
 
-  const handleSendNote = async () => {
-    if (!noteInput.trim() || !currentMemory) return;
-    await ChatService.getInstance().sendMessage(
-        [currentFamily.slug],
-        currentFamily.slug,
-        `${currentFamily.name.split(' ')[1]} // ${currentUser.name}`,
-        noteInput,
-        { id: currentMemory.id, name: currentMemory.name }
-    );
-    setNoteInput('');
-    const msgs = await ChatService.getInstance().getMessagesForArtifact(currentMemory.id);
-    setArtifactMessages(msgs);
-  };
-
   const transferSelected = async (targetPersonId: string) => {
     if (selectedIds.size === 0) return;
     try {
@@ -478,7 +450,7 @@ export default function ImmersiveGallery({ tree, overrides, setOverrides, isSync
           animate={{ y: showUi ? 0 : -100, opacity: showUi ? 1 : 0 }} 
           className="fixed top-0 left-0 right-0 z-50 px-10 py-4 flex justify-between items-start pointer-events-none"
         >
-          {/* LEFT: Branding */}
+          {/* LEFT: Branding Area */}
           <div className="pointer-events-auto flex flex-col items-start gap-0">
             <h1 className="text-lg font-serif font-bold text-gray-900 dark:text-white tracking-tighter uppercase italic leading-tight">Schnitzelbank</h1>
             <span className="text-[8px] font-black text-gray-400 dark:text-white/30 uppercase tracking-[0.4em] leading-tight mb-1">
@@ -501,31 +473,27 @@ export default function ImmersiveGallery({ tree, overrides, setOverrides, isSync
             </select>
           </div>
 
-          {/* RIGHT: Menu System (Right-Angle Design) */}
-          <div className="pointer-events-auto flex flex-col items-end gap-0">
-            {/* Horizontal Segment */}
-            <div className="flex gap-4 mb-4">
+          {/* RIGHT: Menu Grid (3 Columns) */}
+          <div className="pointer-events-auto grid grid-cols-3 gap-2 bg-white/40 dark:bg-black/20 backdrop-blur-xl p-2 rounded-sm border border-gray-200 dark:border-white/5 shadow-2xl">
               <button onClick={() => { localStorage.removeItem('schnitzel_session'); localStorage.removeItem('schnitzel_identity'); window.location.reload(); }} className="p-3.5 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl" title="Lock Archive"><Lock className="w-4 h-4 text-gray-500 dark:text-white/40" /></button>
               <button onClick={() => navigate(`${slugPrefix}/messages`)} className="p-3.5 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl" title="Messages"><MessageCircle className="w-4 h-4 text-gray-500 dark:text-white/40" /></button>
               <button onClick={() => navigate(`${slugPrefix}/documents`)} className="p-3.5 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl" title="File Cabinet"><Database className="w-4 h-4 text-gray-500 dark:text-white/40" /></button>
+              
               <button onClick={() => navigate(`${slugPrefix}/ingest`)} className="p-3.5 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl" title="Upload"><Terminal className="w-4 h-4 text-gray-500 dark:text-white/40" /></button>
               <button onClick={cycleGridMode} className="p-3.5 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl" title="Grid View">
                 {viewMode === 'theatre' ? <Grid className="w-4 h-4 text-gray-500 dark:text-white/40" /> : <Maximize2 className="w-4 h-4 text-gray-500 dark:text-white/40" />}
               </button>
               <button onClick={() => navigate(`${slugPrefix}/biography`)} className="p-3.5 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl" title="Biographies"><BookOpen className="w-4 h-4 text-gray-500 dark:text-white/40" /></button>
+              
               <button onClick={() => navigate(`${slugPrefix}/export`)} className="p-3.5 bg-black dark:bg-white text-white dark:text-black rounded-full shadow-2xl hover:bg-gray-800 dark:hover:bg-slate-200 transition-all" title="Export"><Download className="w-4 h-4" /></button>
-            </div>
-
-            {/* Vertical Segment (Anchored below Export) */}
-            <div className="flex flex-col gap-4">
               <button onClick={() => setIsGlobalView(!isGlobalView)} className={`p-3.5 rounded-full border transition-all shadow-xl ${isGlobalView ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-500' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/5 text-gray-500 dark:text-white/40'}`} title="Toggle Global/Family View"><Users className="w-4 h-4" /></button>
               <button onClick={toggleTheme} className="p-3.5 bg-white dark:bg-white/5 rounded-full border border-gray-200 dark:border-white/5 shadow-xl transition-all hover:bg-gray-100 dark:hover:bg-white/10" title="Theme">
                 {theme === 'light' ? <Moon className="w-4 h-4 text-gray-500" /> : <Sun className="w-4 h-4 text-white/40" />}
               </button>
+              
               <button onClick={() => setShowDescription(!showDescription)} className={`p-3.5 rounded-full border transition-all shadow-xl ${showDescription ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-500' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/5 text-gray-500 dark:text-white/40'}`} title="Toggle Description"><AlignLeft className="w-4 h-4" /></button>
               <button onClick={() => setNoteMode(!noteMode)} className={`p-3.5 rounded-full border transition-all shadow-xl ${noteMode ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-500' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/5 text-gray-500 dark:text-white/40'}`} title="Toggle Note Mode"><StickyNote className="w-4 h-4" /></button>
               <button onClick={() => setIsShuffleGallery(!isShuffleGallery)} className={`p-3.5 rounded-full border transition-all shadow-xl ${isShuffleGallery ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-500' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/5 text-gray-500 dark:text-white/40'}`} title="Toggle Shuffle Progression"><Shuffle className="w-4 h-4" /></button>
-            </div>
           </div>
         </motion.header>
 
@@ -599,110 +567,52 @@ export default function ImmersiveGallery({ tree, overrides, setOverrides, isSync
 
               <AnimatePresence>
                 {showUi && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="absolute bottom-8 left-8 z-30 flex flex-col items-start text-left pointer-events-none">
-                    {/* CHAT HUD - SIT ABOVE METADATA CARD */}
+                  <div className="absolute inset-0 z-30 pointer-events-none">
+                    {/* CHAT HUD - BOTTOM LEFT */}
                     {viewMode === 'theatre' && (
-                        <div className="pointer-events-auto mb-4" onMouseEnter={() => setIsUiLocked(true)} onMouseLeave={() => setIsUiLocked(false)}>
-                            <div className="flex gap-2 mb-2 opacity-40 hover:opacity-100 transition-opacity">
-                                <button onClick={() => setAnnotationMode('off')} className={`p-1.5 rounded-sm transition-all ${annotationMode === 'off' ? 'bg-white/20 text-white' : 'text-white/40'}`} title="Annotations Off"><X className="w-3.5 h-3.5" /></button>
-                                <button onClick={() => setAnnotationMode('text')} className={`p-1.5 rounded-sm transition-all ${annotationMode === 'text' ? 'bg-emerald-500 text-white' : 'text-white/40'}`} title="Typewriter Mode"><Type className="w-3.5 h-3.5" /></button>
-                                <button onClick={() => setAnnotationMode('cursive')} className={`p-1.5 rounded-sm transition-all ${annotationMode === 'cursive' ? 'bg-emerald-500 text-white' : 'text-white/40'}`} title="Cursive Mode"><PenTool className="w-3.5 h-3.5" /></button>
-                            </div>
-                            <ChatBox currentFamily={currentFamily} currentUser={currentUser} people={tree.people} attachedArtifact={currentMemory ? { id: currentMemory.id, name: currentMemory.name } : undefined} onSelectArtifact={handleSelectArtifactFromChat} />
+                        <div className="absolute bottom-8 left-8 pointer-events-auto" onMouseEnter={() => setIsUiLocked(true)} onMouseLeave={() => setIsUiLocked(false)}>
+                            <ChatBox 
+                                currentFamily={currentFamily} 
+                                currentUser={currentUser} 
+                                people={tree.people} 
+                                attachedArtifact={currentMemory ? { id: currentMemory.id, name: currentMemory.name } : undefined} 
+                                onSelectArtifact={handleSelectArtifactFromChat} 
+                                isNoteMode={noteMode}
+                            />
                         </div>
                     )}
 
+                    {/* METADATA CARD - BOTTOM RIGHT */}
                     {!isVideoPlaying && showDescription && (
-                        <div className="pointer-events-auto bg-black/40 backdrop-blur-md border border-white/10 px-6 py-4 rounded-sm hover:bg-black/60 transition-colors">
+                        <div className="absolute bottom-8 right-8 pointer-events-auto bg-black/40 backdrop-blur-md border border-white/10 px-6 py-4 rounded-sm hover:bg-black/60 transition-colors text-right">
                           <div className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-1 cursor-pointer hover:text-white transition-colors" onDoubleClick={(e) => { e.stopPropagation(); startEditing(currentMemory.id, 'year', currentMemory.date); }}>
-                            {editingField?.id === currentMemory.id && editingField.field === 'year' ? <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => e.key === 'Enter' && saveEdit()} className="bg-transparent border-b border-white/30 text-white w-12 outline-none" /> : <span>{new Date(currentMemory.date || Date.now()).getUTCFullYear()}</span>}
+                            {editingField?.id === currentMemory.id && editingField.field === 'year' ? <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => e.key === 'Enter' && saveEdit()} className="bg-transparent border-b border-white/30 text-white w-12 outline-none text-right" /> : <span>{new Date(currentMemory.date || Date.now()).getUTCFullYear()}</span>}
                           </div>
                           <div className="text-xl font-serif italic text-white tracking-wide cursor-pointer hover:text-emerald-400 transition-colors" onDoubleClick={(e) => { e.stopPropagation(); startEditing(currentMemory.id, 'name', currentMemory.name); }}>
-                            {editingField?.id === currentMemory.id && editingField.field === 'name' ? <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => e.key === 'Enter' && saveEdit()} className="bg-transparent border-b border-white/30 text-white w-64 outline-none" /> : <span>{currentMemory.name.replace(/\.[^.]+$/, '')}</span>}
+                            {editingField?.id === currentMemory.id && editingField.field === 'name' ? <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => e.key === 'Enter' && saveEdit()} className="bg-transparent border-b border-white/30 text-white w-64 outline-none text-right" /> : <span>{currentMemory.name.replace(/\.[^.]+$/, '')}</span>}
                           </div>
                         </div>
                     )}
-                  </motion.div>
+                  </div>
                 )}
               </AnimatePresence>
 
-              {annotationMode !== 'off' && artifactMessages.length > 0 && (
-                  <AnnotationStream messages={artifactMessages} mode={annotationMode} />
-              )}
+              {/* Note Side panel is now integrated into ChatBox toggle, so we remove the old Sidebar if it exists */}
 
-              {noteMode && (
-                  <motion.div 
-                    initial={{ x: 400, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    exit={{ x: 400, opacity: 0 }}
-                    className="absolute right-0 top-0 bottom-0 w-80 bg-white/95 dark:bg-black/80 backdrop-blur-3xl border-l border-gray-100 dark:border-white/10 z-[40] flex flex-col p-8 pt-32"
-                  >
-                    <div className="flex items-center gap-3 mb-8">
-                        <StickyNote className="w-4 h-4 text-emerald-500" />
-                        <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-900 dark:text-white">Artifact Notes</h2>
-                    </div>
-
-                    <div className="mb-8 flex flex-col gap-4">
-                        <textarea 
-                            value={noteInput}
-                            onChange={(e) => setNoteInput(e.target.value)}
-                            placeholder="Add a transmission note..."
-                            className="w-full bg-black/5 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-sm p-4 text-[10px] font-serif italic focus:outline-none focus:border-emerald-500/50 transition-all resize-none"
-                            rows={3}
-                        />
-                        <button 
-                            onClick={handleSendNote}
-                            className="w-full py-3 bg-emerald-500 text-white text-[9px] font-black uppercase tracking-widest rounded-sm hover:bg-emerald-400 transition-all shadow-lg active:scale-95"
-                        >
-                            Add Note
-                        </button>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto space-y-6 no-scrollbar">
-                        {artifactMessages.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-20 text-center opacity-20">
-                                <MessageCircle className="w-8 h-8 mb-4" />
-                                <p className="text-[8px] font-black uppercase tracking-widest">No transmissions linked to this artifact.</p>
-                            </div>
-                        ) : (
-                            artifactMessages.map((m, i) => (
-                                <div key={i} className="flex flex-col gap-2">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-[7px] font-black text-emerald-500 uppercase tracking-widest">{m.senderName}</span>
-                                        <span className="text-[6px] text-gray-300 dark:text-white/10">{m.timestamp ? new Date(m.timestamp.seconds * 1000).toLocaleTimeString() : ''}</span>
-                                    </div>
-                                    <p className="text-[10px] font-serif italic text-gray-600 dark:text-white/60 leading-relaxed border-l-2 border-emerald-500/20 pl-4 py-1">
-                                        {m.text}
-                                    </p>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                  </motion.div>
-              )}
 
               <button onClick={() => setCurrentIndex(p => (p - 1 + filteredMemories.length) % filteredMemories.length)} className={`absolute left-8 top-1/2 -translate-y-1/2 p-6 text-gray-300 dark:text-white/10 hover:text-gray-900 dark:hover:text-white transition-opacity duration-500 ${showUi ? 'opacity-100' : 'opacity-0'} pointer-events-auto`}><ChevronLeft className="w-16 h-16 stroke-[0.5]" /></button>
               <button onClick={() => setCurrentIndex(p => (p + 1) % filteredMemories.length)} className={`absolute right-8 top-1/2 -translate-y-1/2 p-6 text-gray-300 dark:text-white/10 hover:text-gray-900 dark:hover:text-white transition-opacity duration-500 ${showUi ? 'opacity-100' : 'opacity-0'} pointer-events-auto`}><ChevronRight className="w-16 h-16 stroke-[0.5]" /></button>
             </motion.div>
           ) : (
             <motion.div key="grid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 overflow-y-auto p-10 pt-32 custom-scrollbar" onClick={() => setShowUi(false)}>
-              <Reorder.Group 
-                axis="y" 
-                values={orderedMemories} 
-                onReorder={(newOrder) => {
-                    setOrderedMemories(newOrder);
-                    setCustomOrder(newOrder.map(m => m.id));
-                }}
-                className={`grid ${getGridCols()} gap-6 max-w-[1800px] mx-auto pb-20`}
-              >
+              <div className={`grid ${getGridCols()} gap-6 max-w-[1800px] mx-auto pb-20`}>
                 {orderedMemories.map((m, idx) => (
-                  <Reorder.Item 
+                  <motion.div 
                     key={m.id} 
-                    value={m}
                     initial={{ opacity: 0, y: 20 }} 
                     animate={{ opacity: 1, y: 0 }} 
                     transition={{ delay: idx * 0.01 }} 
-                    className="relative aspect-square bg-gray-100 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 rounded-sm overflow-hidden cursor-move group hover:border-gray-400 dark:hover:border-white/20 transition-all shadow-xl"
+                    className="relative aspect-square bg-gray-100 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 rounded-sm overflow-hidden cursor-pointer group hover:border-gray-400 dark:hover:border-white/20 transition-all shadow-xl"
                   >
                       <div onClick={() => { 
                           const actualIdx = filteredMemories.findIndex(fm => fm.id === m.id);
@@ -712,14 +622,29 @@ export default function ImmersiveGallery({ tree, overrides, setOverrides, isSync
                         {m.type === 'video' || m.name.endsWith('.mp4') ? (
                             <div className="w-full h-full bg-black flex items-center justify-center"><Play className="w-12 h-12 text-white/20" /></div>
                         ) : (
-                            <ResolvedImage src={m.photoUrl || m.url || ''} alt={m.name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-110 pointer-events-none" />
+                            <ResolvedImage src={m.photoUrl || m.url || ''} alt={m.name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-110" />
                         )}
                       </div>
+                      
+                      {/* Favorite Star Icon - Top Left */}
+                      <button 
+                        onClick={(e) => { 
+                            e.stopPropagation(); 
+                            if (filterPerson) {
+                                PersistenceService.getInstance().toggleFavorite(m, filterPerson, tree.protocolKey || 'MURRAY_LEGACY_2026');
+                            }
+                        }} 
+                        className={`absolute top-2 left-2 p-2 rounded-full transition-all z-20 ${filterPerson && m.tags.favoriteForPersonIds?.includes(filterPerson) ? 'text-emerald-500 opacity-100' : 'text-white/50 opacity-0 group-hover:opacity-100 hover:text-emerald-400'}`}
+                        title={filterPerson ? "Toggle Favorite for Subject" : "Select a Subject to set Favorites"}
+                      >
+                        <Star className={`w-4 h-4 ${filterPerson && m.tags.favoriteForPersonIds?.includes(filterPerson) ? 'fill-emerald-500' : ''}`} />
+                      </button>
+
                       <button onClick={(e) => { e.stopPropagation(); toggleSelection(m.id); }} className={`absolute top-2 right-2 p-2 rounded-full transition-all z-20 ${selectedIds.has(m.id) ? 'bg-emerald-500 text-white opacity-100' : 'bg-black/50 text-white/50 opacity-0 group-hover:opacity-100 hover:bg-black/80 hover:text-white'}`}>{selectedIds.has(m.id) ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}</button>
                       <button onClick={(e) => { e.stopPropagation(); downloadSingle(m); }} className="absolute bottom-2 right-2 p-2 bg-black/50 text-white/50 rounded-full opacity-0 group-hover:opacity-100 hover:bg-white hover:text-black transition-all z-20"><Download className="w-4 h-4" /></button>
-                  </Reorder.Item>
+                  </motion.div>
                 ))}
-              </Reorder.Group>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

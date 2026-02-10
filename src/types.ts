@@ -26,6 +26,7 @@ export interface Memory {
     personIds: string[];
     isFamilyMemory: boolean;
     customTags?: string[];
+    favoriteForPersonIds?: string[];
   };
 }
 

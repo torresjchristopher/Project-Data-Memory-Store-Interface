@@ -138,7 +138,11 @@ class PersistenceServiceImpl {
         location: memory.location || '',
         content: memory.content || '',
         url: memory.photoUrl || '',       // Standardize on 'url'
-        photoUrl: memory.photoUrl || ''   // specific fallback
+        photoUrl: memory.photoUrl || '',   // specific fallback
+        tags: {
+            ...memory.tags,
+            favoriteForPersonIds: memory.tags.favoriteForPersonIds || []
+        }
       }, { merge: true });
       
       console.log(`✅ Artifact ${memory.id} synchronized to cloud.`);
@@ -191,6 +195,23 @@ class PersistenceServiceImpl {
 
         await this.saveMemorySync(updatedMemory, protocolKey);
     }
+  }
+
+  async toggleFavorite(memory: Memory, personId: string, protocolKey: string): Promise<void> {
+    const currentFavorites = memory.tags.favoriteForPersonIds || [];
+    const updatedFavorites = currentFavorites.includes(personId)
+        ? currentFavorites.filter(id => id !== personId)
+        : [...currentFavorites, personId];
+
+    const updatedMemory = {
+        ...memory,
+        tags: {
+            ...memory.tags,
+            favoriteForPersonIds: updatedFavorites
+        }
+    };
+
+    await this.saveMemorySync(updatedMemory, protocolKey);
   }
 
   /**

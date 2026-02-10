@@ -41,29 +41,43 @@ export default function BiographyPage({ tree, currentFamily }: BiographyPageProp
   const [editBio, setEditBio] = useState('');
   const [editBirthDate, setEditBirthDate] = useState('');
   const [isShuffling, setIsShuffling] = useState(false);
+  const [randomFavoriteMap, setRandomFavoriteMap] = useState<Record<string, string>>({});
 
   const people = useMemo(() => {
     return (tree.people || []).filter(p => p.id !== 'FAMILY_ROOT');
   }, [tree.people]);
 
   useEffect(() => {
-    let interval: any;
-    if (isShuffling && selectedPersonIndex !== null) {
-        interval = setInterval(() => {
-            setSelectedPersonIndex(Math.floor(Math.random() * people.length));
-        }, 5000);
-    }
-    return () => clearInterval(interval);
-  }, [isShuffling, selectedPersonIndex, people.length]);
+    // When people or memories change, or when we first load, pick a random favorite for each person
+    const newMap: Record<string, string> = {};
+    people.forEach(p => {
+        const favorites = tree.memories.filter(m => 
+            m.tags.favoriteForPersonIds?.includes(p.id) && 
+            (m.type === 'image' || m.type === 'video')
+        );
+        if (favorites.length > 0) {
+            const randomIdx = Math.floor(Math.random() * favorites.length);
+            newMap[p.id] = favorites[randomIdx].id;
+        }
+    });
+    setRandomFavoriteMap(newMap);
+  }, [tree.memories, people.length]);
 
   const personArtifacts = useMemo(() => {
     const map: Record<string, Memory> = {};
     people.forEach(p => {
-      const artifact = tree.memories.find(m => m.tags.personIds.includes(p.id) && (m.type === 'image' || m.type === 'video'));
-      if (artifact) map[p.id] = artifact;
+      const favoriteId = randomFavoriteMap[p.id];
+      if (favoriteId) {
+          const artifact = tree.memories.find(m => m.id === favoriteId);
+          if (artifact) {
+              map[p.id] = artifact;
+              return;
+          }
+      }
+      // If no favorite, don't auto-select (user requested empty until favorites made)
     });
     return map;
-  }, [people, tree.memories]);
+  }, [people, tree.memories, randomFavoriteMap]);
 
   const currentPerson = selectedPersonIndex !== null ? people[selectedPersonIndex] : null;
 
