@@ -83,6 +83,8 @@ export class ChatService {
         ...doc.data()
       })) as ChatMessage[];
       onUpdate(messages);
+    }, (error) => {
+        console.error(`Message subscription failed for chat ${chatId}:`, error);
     });
   }
 
@@ -103,7 +105,6 @@ export class ChatService {
   }
 
   async getFamilyPeople(familySlug: string): Promise<{id: string, name: string}[]> {
-    // ... existing implementation
     try {
       const familyDoc = await getDocs(query(collection(db, 'families'), where('slug', '==', familySlug)));
       if (familyDoc.empty) return [];
@@ -136,6 +137,8 @@ export class ChatService {
         ...doc.data()
       })) as ChatMessage[];
       onUpdate(messages);
+    }, (error) => {
+        console.error(`Artifact message subscription failed for ${artifactId}:`, error);
     });
   }
 
@@ -176,6 +179,8 @@ export class ChatService {
         ...doc.data()
       })) as ChatSession[];
       onUpdate(chats);
+    }, (error) => {
+        console.error("Global broadcast subscription failed:", error);
     });
   }
 }
