@@ -100,7 +100,8 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ currentFamily, currentUser, pe
       currentFamily.slug,
       `${currentFamily.name.split(' ')[1]} // ${currentUser.name}`, 
       inputText,
-      hasAttachment ? attachedArtifact : undefined
+      hasAttachment ? attachedArtifact : undefined,
+      currentUser.id
     );
     setInputText('');
     
@@ -111,15 +112,15 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ currentFamily, currentUser, pe
   };
 
   return (
-    <div className="w-[340px] max-h-[60vh] flex flex-col pointer-events-auto font-sans bg-white/10 dark:bg-black/20 backdrop-blur-md rounded-sm p-2 shadow-2xl">
+    <div className="w-[340px] max-h-[60vh] flex flex-col pointer-events-auto font-sans p-2">
       
       {/* Message Stream */}
       <div className={`overflow-y-auto px-2 space-y-4 no-scrollbar transition-all duration-500 ease-in-out ${messages.length > 0 ? 'flex-1 py-6 opacity-100' : 'h-0 py-0 opacity-0 pointer-events-none'}`}>
           {messages.map((m, i) => (
-            <div key={i} className="flex flex-col items-start">
+            <div key={i} className={`flex flex-col ${m.senderPersonId === currentUser.id ? 'items-end' : 'items-start'}`}>
               <div className="text-[6px] font-black text-black dark:text-black opacity-40 uppercase tracking-[0.2em] mb-1 px-1">{m.senderName}</div>
               <div className={`w-fit max-w-[90%] p-2.5 rounded-sm text-[10px] leading-snug font-black transition-colors ${
-                m.senderId === currentFamily.slug 
+                m.senderPersonId === currentUser.id 
                 ? 'bg-emerald-500 text-black shadow-sm' 
                 : 'bg-white border border-black/10 text-black shadow-sm'
               }`}>

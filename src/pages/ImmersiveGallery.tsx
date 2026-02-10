@@ -474,7 +474,7 @@ export default function ImmersiveGallery({ tree, overrides, setOverrides, isSync
           </div>
 
           {/* RIGHT: Menu Grid (3 Columns) */}
-          <div className="pointer-events-auto grid grid-cols-3 gap-2 bg-white/40 dark:bg-black/20 backdrop-blur-xl p-2 rounded-sm border border-gray-200 dark:border-white/5 shadow-2xl">
+          <div className="pointer-events-auto grid grid-cols-3 gap-2 p-2">
               <button onClick={() => { localStorage.removeItem('schnitzel_session'); localStorage.removeItem('schnitzel_identity'); window.location.reload(); }} className="p-3.5 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl" title="Lock Archive"><Lock className="w-4 h-4 text-gray-500 dark:text-white/40" /></button>
               <button onClick={() => navigate(`${slugPrefix}/messages`)} className="p-3.5 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl" title="Messages"><MessageCircle className="w-4 h-4 text-gray-500 dark:text-white/40" /></button>
               <button onClick={() => navigate(`${slugPrefix}/documents`)} className="p-3.5 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full border border-gray-200 dark:border-white/5 transition-all shadow-xl" title="File Cabinet"><Database className="w-4 h-4 text-gray-500 dark:text-white/40" /></button>

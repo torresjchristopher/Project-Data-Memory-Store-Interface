@@ -17,6 +17,7 @@ export interface ChatMessage {
   id?: string;
   senderId: string;
   senderName: string;
+  senderPersonId?: string;
   text: string;
   artifactId?: string;
   artifactName?: string;
@@ -45,7 +46,7 @@ export class ChatService {
     return [...participantIds].sort().join('--');
   }
 
-  async sendMessage(participantIds: string[], senderId: string, senderName: string, text: string, artifact?: { id: string, name: string }) {
+  async sendMessage(participantIds: string[], senderId: string, senderName: string, text: string, artifact?: { id: string, name: string }, senderPersonId?: string) {
     const chatId = this.getChatId(participantIds);
     const chatRef = doc(db, 'chats', chatId);
     const messagesRef = collection(db, 'chats', chatId, 'messages');
@@ -61,6 +62,7 @@ export class ChatService {
     await addDoc(messagesRef, {
       senderId,
       senderName,
+      senderPersonId: senderPersonId || null,
       text,
       artifactId: artifact?.id || null,
       artifactName: artifact?.name || null,

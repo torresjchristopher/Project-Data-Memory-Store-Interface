@@ -65,7 +65,7 @@ export default function IdentityPage({ tree, onSelect, familyName }: IdentityPag
                       <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-white/5 flex items-center justify-center">
                         <User className="w-4 h-4 text-gray-400 dark:text-white/20 group-hover:text-emerald-500 transition-colors" />
                       </div>
-                      <span className="text-sm font-bold text-gray-700 dark:text-white/70 uppercase tracking-widest">{person.name}</span>
+                      <span className="text-sm font-bold text-gray-700 dark:text-white/70 tracking-widest">{person.name}</span>
                     </div>
                     <ArrowRight className="w-4 h-4 text-gray-300 dark:text-white/10 group-hover:translate-x-1 transition-all" />
                   </motion.button>
@@ -74,7 +74,7 @@ export default function IdentityPage({ tree, onSelect, familyName }: IdentityPag
                 <motion.button
                   layout
                   onClick={() => setIsAdding(true)}
-                  className="flex items-center gap-4 p-5 border border-dashed border-gray-300 dark:border-white/10 rounded-sm hover:border-gray-500 dark:hover:border-white/30 transition-all group"
+                  className="flex items-center gap-4 p-5 border border-dashed border-gray-300 dark:border-white/10 rounded-sm hover:border-gray-400 dark:hover:border-white/20 hover:bg-white dark:hover:bg-white/[0.05] transition-all group"
                 >
                   <div className="w-10 h-10 rounded-full flex items-center justify-center border border-dashed border-gray-300 dark:border-white/10">
                     <UserPlus className="w-4 h-4 text-gray-400 dark:text-white/20" />
@@ -96,7 +96,7 @@ export default function IdentityPage({ tree, onSelect, familyName }: IdentityPag
                     placeholder="ENTER YOUR NAME..."
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
-                    className="w-full bg-white dark:bg-white/[0.03] border border-gray-300 dark:border-white/10 p-5 text-sm font-bold tracking-widest text-gray-900 dark:text-white uppercase focus:ring-0 focus:border-emerald-500 transition-all placeholder:text-gray-300 dark:placeholder:text-white/5"
+                    className="w-full bg-white dark:bg-white/[0.03] border border-gray-300 dark:border-white/10 p-5 text-sm font-bold tracking-widest text-gray-900 dark:text-white focus:ring-0 focus:border-emerald-500 transition-all placeholder:text-gray-300 dark:placeholder:text-white/5"
                   />
                 </div>
                 <div className="flex gap-2">
